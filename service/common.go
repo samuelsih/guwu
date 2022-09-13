@@ -22,3 +22,10 @@ func (o *CommonResponse) SetCreated() {
 	o.Msg = "Created"
 }
 
+type CommonOutput interface {
+	Common() *CommonResponse
+}
+
+func (o CommonResponse) Common() *CommonResponse {
+	return &o
+}

@@ -1,13 +1,19 @@
 package main
 
 import (
-	"github.com/samuelsih/guwu/config"
+	"os"
+	"os/signal"
+
+	"github.com/samuelsih/guwu"
 )
 
 func main() {
-	db := config.ConnectAndInitCockroach()
+	server := guwu.NewServer()
 
-	
+	stop := make(chan os.Signal, 1)
+	defer close(stop)
 
-	db.Close()
+	signal.Notify(stop, os.Interrupt)
+
+	server.Run(stop)
 }

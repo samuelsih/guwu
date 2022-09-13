@@ -13,13 +13,13 @@ type Guest struct {
 }
 
 type GuestLoginIn struct {
-	UserCred string `json:"user_cred"`
+	Email string `json:"email"`
 	Password string `json:"password"`
 }
 
 type GuestLoginOut struct {
 	CommonResponse
-	User *model.User
+	User *model.User `json:"user,omitempty"`
 }
 
 func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
@@ -27,7 +27,7 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 
 	user := model.NewUser(u.DB)
 	
-	user, err := user.GetUserByEmailOrUsername(in.UserCred)
+	err := user.GetUserByEmail(in.Email)
 	if err != nil {
 		out.SetError(http.StatusBadRequest, err.Error())
 		return out
@@ -59,9 +59,9 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 	var out GuestRegisterOut
 
 	user := model.NewUser(u.DB)
-	
-	if user.EmailExists(ctx, in.Email) {
-		out.SetError(http.StatusBadRequest, `Email already exists`)
+
+	if err := validateSignIn(*in); err != nil {
+		out.SetError(http.StatusBadRequest, err.Error())
 		return out
 	}
 
@@ -71,10 +71,11 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 
 	user, err := user.Insert(ctx)
 	if err != nil {
-		out.SetError(http.StatusInternalServerError, "Cant insert user to database:" + err.Error())
+		out.SetError(http.StatusInternalServerError, err.Error())
 		return out
 	}
 
 	out.User = user.Clean()
+	out.SetOK()
 	return out
 }
