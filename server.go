@@ -1,13 +1,13 @@
 package guwu
 
 import (
-	"log"
+	"context"
 	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog/log"
 	"github.com/samuelsih/guwu/config"
 	"github.com/samuelsih/guwu/service"
 	"golang.org/x/sync/errgroup"
@@ -28,14 +28,15 @@ func NewServer() *Server {
 
 func (s *Server) load() {
 	guest := service.Guest{DB: s.DB}
+
 	POST(s.Router, "/register", guest.Register)
 	POST(s.Router, "/login", guest.Login)
 }
 
 func (s *Server) Run(stop <-chan os.Signal) {
 	s.Router.Use(
+		Logger(),
 		JSONResponse(),
-		middleware.Recoverer,
 	)
 
 	s.load()
@@ -46,35 +47,39 @@ func (s *Server) Run(stop <-chan os.Signal) {
 	}
 
 	go func ()  {
-		log.Println("Listening on port :8080")
+		log.Info().Msg("Listening on port :8080")
 		if err := srv.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
-				log.Fatal(err)
+				log.Fatal().Msg("Cant start server: " + err.Error())
 			}
 		}	
 	}()
 
 	<- stop
 
-	log.Println("Shutting Down received")
-
+	log.Info().Msg("Shutting Down received")
+	
 	eg := &errgroup.Group{}
 
 	eg.Go(func() error {
 		err := s.DB.Close()
 
 		if err != nil {
-			log.Println("Error closing db:", err)
+			log.Error().Msg("Error closing db: " + err.Error())
 			return err
 		}
 
-		log.Println("Closing DB Success")
+		log.Info().Msg("Closing DB Success")
 		return nil
 	})
 
 	if err := eg.Wait(); err != nil {
-		log.Fatal(err)
+		log.Fatal().Msg("Error on closing database" + err.Error())
 	}
 
-	log.Println("Shutdown complete")
+	if err := srv.Shutdown(context.Background()); err != nil {
+		log.Fatal().Msg("Error shutting down: " + err.Error())
+	} 
+
+	log.Info().Msg("Shutdown complete")
 }

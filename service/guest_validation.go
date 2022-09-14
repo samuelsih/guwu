@@ -6,6 +6,8 @@ import (
 	"net/mail"
 	"strings"
 	"unicode"
+
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -26,14 +28,17 @@ var (
 
 func validateSignIn(data GuestRegisterIn) error {
 	if err := validateEmail(data.Email); err != nil {
+		log.Debug().Stack().Err(err).Str("place", "validate email")
 		return err
 	}
 
 	if err := validateName(data.Name); err != nil {
+		log.Debug().Stack().Err(err).Str("place", "validate name")
 		return err
 	}
 
 	if err := validatePassword(data.Password); err != nil {
+		log.Debug().Stack().Err(err).Str("place", "validate password")
 		return err
 	}
 
