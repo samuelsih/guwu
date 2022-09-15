@@ -10,67 +10,61 @@ import (
 )
 
 type User struct {
-	db        *sqlx.DB  `json:"-"`
 	ID        string    `db:"id" json:"id"`
 	Username  string    `db:"username" json:"username"`
 	Email     string    `db:"email" json:"email"`
 	Password  string    `db:"password" json:"-"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at,omitempty"`
 }
 
 type UserDeps struct {
 	DB *sqlx.DB
 }
 
-func NewUser(db *sqlx.DB) *User {
-	return &User{db: db}
-}
-
-func (u *User) PasswordMatches(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
-	return err == nil
-}
-
-func (u *User) Insert(ctx context.Context) (*User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (*User, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	u.ID = xid.New().String()
-	u.Password = string(hashedPassword)
-	u.CreatedAt = time.Now()
+	user := User{
+		ID: xid.New().String(),
+		Username: username,
+		Email: email,
+		Password: string(hashedPassword),
+		CreatedAt: time.Now().UTC(),
+	}
 
 	query := `INSERT INTO users (id, username, email, password, created_at) 
 			VALUES ($1, $2, $3, $4, $5)`
 
-	_, err = u.db.ExecContext(ctx, query, u.ID, u.Username, u.Email, u.Password, u.CreatedAt)
+	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
 		return nil, wrapErr(err, "User")
 	}
 
-	return u.clean(), nil
+	return &user, nil
 }
 
-func (u *User) GetUserByEmail(email string) error {
+func (u *UserDeps) GetUserByEmail(email string) (*User, error) {
 	query := `SELECT id, username, email, password FROM users WHERE email = $1`
 
-	err := u.db.Get(u, query, email)
+	var user User
+	err := u.DB.Get(&user, query, email)
 
 	if err != nil {
-		println("Error in getting user: ", err.Error())
-		return wrapErr(err, "Email")
+		return nil, wrapErr(err, "Email")
 	}
 
-	return err
+	return &user, nil
 }
 
-func (u *User) FindUserByUsername(ctx context.Context, username string) ([]*User, error) {
+func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]*User, error) {
 	query := `SELECT username FROM users WHERE username ILIKE $1`
 
 	var users []*User
-	err := u.db.SelectContext(ctx, &users, query, username)
+	err := u.DB.SelectContext(ctx, &users, query, username)
 
 	if err != nil {
 		return nil, wrapErr(err, "Username")
@@ -79,7 +73,7 @@ func (u *User) FindUserByUsername(ctx context.Context, username string) ([]*User
 	return users, nil
 }
 
-func (u *User) clean() *User {
-	u.db = nil
-	return u
+func (u *User) PasswordMatches(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
+	return err == nil
 }

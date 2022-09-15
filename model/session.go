@@ -39,7 +39,7 @@ func (u *SessionDeps) Save(ctx context.Context, data Session) (string, error) {
 		return "", err
 	}
 
-	cmd := u.Conn.Set(ctx, sessionID, value, time.Duration(day)*time.Second)
+	cmd := u.Conn.Set(ctx, sessionID, value, time.Duration(day) * time.Second)
 
 	return sessionID, cmd.Err()
 }

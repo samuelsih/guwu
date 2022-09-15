@@ -20,7 +20,7 @@ type UserFindOut struct {
 func (u *User) FindUser(ctx context.Context, username string) UserFindOut {
 	var out UserFindOut
 
-	user := model.NewUser(u.DB)
+	user := model.UserDeps{DB: u.DB}
 
 	result, err := user.FindUserByUsername(ctx, username)
 	if err != nil {
