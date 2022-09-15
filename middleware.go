@@ -81,3 +81,4 @@ func (Server) CookieExists(h http.HandlerFunc) http.HandlerFunc {
 		h(w, r)
 	}
 }
+

@@ -35,9 +35,9 @@ func (s *Server) load() {
 	user := service.User{DB: s.DB}
 
 	s.Router.Get("/user/{username}", getWithParam(user.FindUser, "username"))
-	s.Router.Post("/register", post(guest.Register))
-	s.Router.Post("/login", post(guest.Login))
-
+	s.Router.Post("/register", loginOrRegister(guest.Register))
+	s.Router.Post("/login", loginOrRegister(guest.Login))
+	s.Router.Delete("/logout", logout(guest.Logout))
 }
 
 func (s *Server) Run(stop <-chan os.Signal) {

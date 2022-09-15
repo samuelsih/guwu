@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"sync"
 	"time"
 
 	"github.com/bytedance/sonic"
@@ -27,6 +28,11 @@ type SessionDeps struct {
 }
 
 func (u *SessionDeps) Save(ctx context.Context, data Session) (string, error) {
+	var mx sync.RWMutex
+
+	mx.RLock()
+	defer mx.RUnlock()
+
 	buf, err := sonic.Marshal(data)
 	if err != nil {
 		return "", err

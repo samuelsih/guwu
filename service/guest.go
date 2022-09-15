@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"github.com/samuelsih/guwu/model"
@@ -11,6 +12,7 @@ import (
 
 type Guest struct {
 	DB *sqlx.DB
+	SessionDB *redis.Client
 }
 
 type GuestLoginIn struct {
@@ -76,6 +78,26 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 	}
 
 	out.User = result
+	out.SetOK()
+	return out
+}
+
+type GuestLogoutOut struct {
+	CommonResponse
+}
+
+func (u *Guest) Logout(ctx context.Context, sessionID string) GuestLogoutOut {
+	var out GuestLogoutOut
+
+	sess := model.SessionDeps{Conn: u.SessionDB}
+
+	err := sess.Delete(ctx, sessionID)
+	if err != nil {
+		log.Debug().Stack().Err(err).Str("place", "session.Delete")
+		out.SetError(http.StatusBadRequest, err.Error())
+		return out
+	}
+
 	out.SetOK()
 	return out
 }
