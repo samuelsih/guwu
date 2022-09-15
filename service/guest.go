@@ -36,7 +36,7 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 	}
 
 	if !user.PasswordMatches(in.Password) {
-		log.Debug().Stack().Err(err).Str("place", "user.PassworsMatches")
+		log.Debug().Stack().Err(err).Str("place", "user.PasswordMatches")
 		out.SetError(http.StatusBadRequest, `User or password does not match`)
 		return out
 	} 

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rs/zerolog/log"
@@ -17,12 +18,14 @@ import (
 type Server struct {
 	Router *chi.Mux
 	DB *sqlx.DB
+	SessionDB *redis.Client
 }
 
 func NewServer() *Server {
 	s := &Server{
 		Router: chi.NewRouter(),
 		DB: config.ConnectAndInitCockroach(),
+		SessionDB: config.NewRedis(),
 	}
 	return s
 }
