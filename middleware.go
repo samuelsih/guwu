@@ -12,7 +12,7 @@ import (
 )
 
 func (Server) JSONResponse() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {	
+	return func(next http.Handler) http.Handler {
 		f := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 
@@ -73,11 +73,11 @@ func (Server) CookieExists(h http.HandlerFunc) http.HandlerFunc {
 		if err != nil {
 			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
 				StatusCode: http.StatusForbidden,
-				Msg: http.StatusText(http.StatusForbidden),
+				Msg:        http.StatusText(http.StatusForbidden),
 			})
 			return
 		}
-		
+
 		h(w, r)
 	}
 }

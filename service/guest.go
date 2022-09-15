@@ -14,7 +14,7 @@ type Guest struct {
 }
 
 type GuestLoginIn struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -27,7 +27,7 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 	var out GuestLoginOut
 
 	user := model.NewUser(u.DB)
-	
+
 	err := user.GetUserByEmail(in.Email)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.GetUserByEmail")
@@ -39,7 +39,7 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 		log.Debug().Stack().Err(err).Str("place", "user.PasswordMatches")
 		out.SetError(http.StatusBadRequest, `User or password does not match`)
 		return out
-	} 
+	}
 
 	out.SetOK()
 	out.User = user
@@ -47,7 +47,7 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 }
 
 type GuestRegisterIn struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
 	Username string `json:"name"`
 	Password string `json:"password"`
 }
@@ -56,7 +56,6 @@ type GuestRegisterOut struct {
 	CommonResponse
 	User *model.User `json:"user,omitempty"`
 }
-
 
 func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegisterOut {
 	var out GuestRegisterOut

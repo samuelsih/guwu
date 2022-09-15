@@ -12,5 +12,5 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Callback(w http.ResponseWriter, r *http.Request) {
-	
+
 }

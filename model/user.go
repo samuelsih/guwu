@@ -9,13 +9,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-
 type User struct {
-	db *sqlx.DB `json:"-"`
-	ID        string `db:"id" json:"id"`
-	Username      string `db:"username" json:"username"`
-	Email     string `db:"email" json:"email"`
-	Password  string `db:"password" json:"-"`
+	db        *sqlx.DB  `json:"-"`
+	ID        string    `db:"id" json:"id"`
+	Username  string    `db:"username" json:"username"`
+	Email     string    `db:"email" json:"email"`
+	Password  string    `db:"password" json:"-"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
@@ -44,7 +43,7 @@ func (u *User) Insert(ctx context.Context) (*User, error) {
 	u.CreatedAt = time.Now()
 
 	query := `INSERT INTO users (id, username, email, password, created_at) 
-			VALUES ($1, $2, $3, $4, $5)`	
+			VALUES ($1, $2, $3, $4, $5)`
 
 	_, err = u.db.ExecContext(ctx, query, u.ID, u.Username, u.Email, u.Password, u.CreatedAt)
 	if err != nil {
@@ -58,7 +57,7 @@ func (u *User) GetUserByEmail(email string) error {
 	query := `SELECT id, username, email, password FROM users WHERE email = $1`
 
 	err := u.db.Get(u, query, email)
-	
+
 	if err != nil {
 		println("Error in getting user: ", err.Error())
 		return wrapErr(err, "Email")
@@ -78,10 +77,9 @@ func (u *User) FindUserByUsername(ctx context.Context, username string) ([]*User
 	}
 
 	return users, nil
-} 
+}
 
 func (u *User) clean() *User {
 	u.db = nil
 	return u
 }
-

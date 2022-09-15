@@ -15,12 +15,12 @@ func main() {
 
 	debug := flag.Bool("debug", false, "sets log level to debug")
 
-    flag.Parse()
+	flag.Parse()
 
-    zerolog.SetGlobalLevel(zerolog.InfoLevel)
-    if *debug {
-        zerolog.SetGlobalLevel(zerolog.DebugLevel)
-    }
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if *debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
 
 	server := guwu.NewServer()
 

@@ -7,8 +7,8 @@ import (
 	_ "embed"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 //go:embed init.up.sql
@@ -26,7 +26,7 @@ func ConnectAndInitCockroach() *sqlx.DB {
 	if err := db.Ping(); err != nil {
 		log.Fatal("Cant ping:", err)
 	}
-	
+
 	db.MustExec(sqlDown)
 	db.MustExec(sqlInit)
 

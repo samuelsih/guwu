@@ -18,13 +18,13 @@ func wrapErr(errSQL error, domain string) error {
 			return fmt.Errorf("%s is required", beautifyColumn(err.ColumnName))
 		}
 	}
-	
+
 	return errSQL
 }
 
 func beautifyColumn(column string) string {
 	var sb strings.Builder
-	
+
 	str := strings.Split(column, "_")
 
 	if len(str) == 1 {

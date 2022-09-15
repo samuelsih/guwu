@@ -16,15 +16,15 @@ import (
 )
 
 type Server struct {
-	Router *chi.Mux
-	DB *sqlx.DB
+	Router    *chi.Mux
+	DB        *sqlx.DB
 	SessionDB *redis.Client
 }
 
 func NewServer() *Server {
 	s := &Server{
-		Router: chi.NewRouter(),
-		DB: config.ConnectAndInitCockroach(),
+		Router:    chi.NewRouter(),
+		DB:        config.ConnectAndInitCockroach(),
 		SessionDB: config.NewRedis(),
 	}
 	return s
@@ -49,23 +49,23 @@ func (s *Server) Run(stop <-chan os.Signal) {
 	s.load()
 
 	srv := &http.Server{
-		Addr: ":8080",
+		Addr:    ":8080",
 		Handler: s.Router,
 	}
 
-	go func ()  {
+	go func() {
 		log.Info().Msg("Listening on port :8080")
 		if err := srv.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
 				log.Fatal().Msg("Cant start server: " + err.Error())
 			}
-		}	
+		}
 	}()
 
-	<- stop
+	<-stop
 
 	log.Info().Msg("Shutting Down received")
-	
+
 	eg := &errgroup.Group{}
 
 	eg.Go(func() error {
@@ -86,7 +86,7 @@ func (s *Server) Run(stop <-chan os.Signal) {
 
 	if err := srv.Shutdown(context.Background()); err != nil {
 		log.Fatal().Msg("Error shutting down: " + err.Error())
-	} 
+	}
 
 	log.Info().Msg("Shutdown complete")
 }

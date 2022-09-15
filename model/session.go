@@ -12,14 +12,14 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-var (	
+var (
 	day = 24 * 60 * 3600
 )
 
 type Session struct {
-	ID    string `json:"id"`
-	Username  string    `json:"username"`
-	Email string    `json:"email"`
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 type SessionDeps struct {

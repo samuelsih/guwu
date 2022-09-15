@@ -16,7 +16,7 @@ func get[outType service.CommonOutput](svc func(context.Context) outType) http.H
 
 		if out.Common().StatusCode == 0 {
 			encoder := encoder.NewStreamEncoder(w)
-			
+
 			w.WriteHeader(http.StatusOK)
 			encoder.Encode(out)
 			return
@@ -31,13 +31,13 @@ func get[outType service.CommonOutput](svc func(context.Context) outType) http.H
 
 func getWithParam[outType service.CommonOutput](svc func(context.Context, string) outType, param string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		urlParam := chi.URLParam(r, param)	
+		urlParam := chi.URLParam(r, param)
 
 		out := svc(r.Context(), urlParam)
 
 		if out.Common().StatusCode == 0 {
 			encoder := encoder.NewStreamEncoder(w)
-			
+
 			w.WriteHeader(http.StatusOK)
 			encoder.Encode(out)
 			return
@@ -61,8 +61,8 @@ func post[inType any, outType service.CommonOutput](svc func(context.Context, *i
 		err := decoder.Decode(&in)
 		if err != nil {
 			encoder.Encode(service.CommonResponse{
-				StatusCode: http.StatusBadRequest, 
-				Msg: err.Error(),
+				StatusCode: http.StatusBadRequest,
+				Msg:        err.Error(),
 			})
 
 			return
@@ -92,8 +92,8 @@ func put[inType any, outType service.CommonOutput](svc func(context.Context, *in
 		err := decoder.Decode(&in)
 		if err != nil {
 			encoder.Encode(service.CommonResponse{
-				StatusCode: http.StatusBadRequest, 
-				Msg: err.Error(),
+				StatusCode: http.StatusBadRequest,
+				Msg:        err.Error(),
 			})
 
 			return
