@@ -42,13 +42,13 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 	} 
 
 	out.SetOK()
-	out.User = user.Clean()
+	out.User = user
 	return out
 }
 
 type GuestRegisterIn struct {
 	Email string `json:"email"`
-	Name string `json:"name"`
+	Username string `json:"name"`
 	Password string `json:"password"`
 }
 
@@ -70,17 +70,17 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 	}
 
 	user.Email = in.Email
-	user.Name = in.Name
+	user.Username = in.Username
 	user.Password = in.Password
 
 	user, err := user.Insert(ctx)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.Insert")
-		out.SetError(http.StatusInternalServerError, err.Error())
+		out.SetError(http.StatusBadRequest, err.Error())
 		return out
 	}
 
-	out.User = user.Clean()
+	out.User = user
 	out.SetOK()
 	return out
 }

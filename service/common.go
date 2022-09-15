@@ -2,6 +2,9 @@ package service
 
 import "net/http"
 
+type CommonRequest struct {
+	Token string `json:"-"`
+}
 type CommonResponse struct {
 	StatusCode int    `json:"code,omitempty"`
 	Msg        string `json:"message,omitempty"`

@@ -13,11 +13,15 @@ import (
 type User struct {
 	db *sqlx.DB `json:"-"`
 	ID        string `db:"id" json:"id"`
-	Name      string `db:"name" json:"name"`
+	Username      string `db:"username" json:"username"`
 	Email     string `db:"email" json:"email"`
 	Password  string `db:"password" json:"-"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
+type UserDeps struct {
+	DB *sqlx.DB
 }
 
 func NewUser(db *sqlx.DB) *User {
@@ -39,19 +43,19 @@ func (u *User) Insert(ctx context.Context) (*User, error) {
 	u.Password = string(hashedPassword)
 	u.CreatedAt = time.Now()
 
-	query := `INSERT INTO users (id, name, email, password, created_at) 
+	query := `INSERT INTO users (id, username, email, password, created_at) 
 			VALUES ($1, $2, $3, $4, $5)`	
 
-	_, err = u.db.ExecContext(ctx, query, u.ID, u.Name, u.Email, u.Password, u.CreatedAt)
+	_, err = u.db.ExecContext(ctx, query, u.ID, u.Username, u.Email, u.Password, u.CreatedAt)
 	if err != nil {
 		return nil, wrapErr(err, "User")
 	}
 
-	return u, nil
+	return u.clean(), nil
 }
 
 func (u *User) GetUserByEmail(email string) error {
-	query := `SELECT id, name, email, password FROM users WHERE email = $1`
+	query := `SELECT id, username, email, password FROM users WHERE email = $1`
 
 	err := u.db.Get(u, query, email)
 	
@@ -63,7 +67,21 @@ func (u *User) GetUserByEmail(email string) error {
 	return err
 }
 
-func (u *User) Clean() *User {
+func (u *User) FindUserByUsername(ctx context.Context, username string) ([]*User, error) {
+	query := `SELECT username FROM users WHERE username ILIKE $1`
+
+	var users []*User
+	err := u.db.SelectContext(ctx, &users, query, username)
+
+	if err != nil {
+		return nil, wrapErr(err, "Username")
+	}
+
+	return users, nil
+} 
+
+func (u *User) clean() *User {
 	u.db = nil
 	return u
 }
+

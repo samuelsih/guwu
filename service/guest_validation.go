@@ -22,8 +22,8 @@ var (
 	errPasswordSymbolChar = errors.New("password must contains symbol char")
 	errPasswordNumChar    = errors.New("password must contains number char")
 
-	errNameRequired  = errors.New("name is required")
-	errNameMaxLength = errors.New("name length must be lower than 100 characters")
+	errUsernameRequired  = errors.New("name is required")
+	errUsernameMaxLength = errors.New("name length must be lower than 100 characters")
 )
 
 func validateSignIn(data GuestRegisterIn) error {
@@ -32,7 +32,7 @@ func validateSignIn(data GuestRegisterIn) error {
 		return err
 	}
 
-	if err := validateName(data.Name); err != nil {
+	if err := validateUsername(data.Username); err != nil {
 		log.Debug().Stack().Err(err).Str("place", "validate name")
 		return err
 	}
@@ -69,13 +69,13 @@ func validateEmail(email string) error {
 	return nil
 }
 
-func validateName(name string) error {
+func validateUsername(name string) error {
 	if name == "" {
-		return errNameRequired
+		return errUsernameRequired
 	}
 
 	if len(name) > 99 {
-		return errNameMaxLength
+		return errUsernameMaxLength
 	}
 
 	return nil

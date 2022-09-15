@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/rs/zerolog/log"
 	"github.com/samuelsih/guwu/config"
 	"github.com/samuelsih/guwu/service"
@@ -28,15 +29,18 @@ func NewServer() *Server {
 
 func (s *Server) load() {
 	guest := service.Guest{DB: s.DB}
+	user := service.User{DB: s.DB}
 
-	POST(s.Router, "/register", guest.Register)
-	POST(s.Router, "/login", guest.Login)
+	s.Router.Get("/user/{username}", getWithParam(user.FindUser, "username"))
+	s.Router.Post("/register", post(guest.Register))
+	s.Router.Post("/login", post(guest.Login))
+
 }
 
 func (s *Server) Run(stop <-chan os.Signal) {
 	s.Router.Use(
-		Logger(),
-		JSONResponse(),
+		s.Logger(),
+		s.JSONResponse(),
 	)
 
 	s.load()

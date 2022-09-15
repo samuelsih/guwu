@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func JSONResponse() func(http.Handler) http.Handler {
+func (Server) JSONResponse() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {	
 		f := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -21,7 +21,7 @@ func JSONResponse() func(http.Handler) http.Handler {
 	}
 }
 
-func Logger() func(http.Handler) http.Handler {
+func (Server) Logger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			wr := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
