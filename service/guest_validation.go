@@ -55,10 +55,6 @@ func validateEmail(email string) error {
 		return errInvalidEmail
 	}
 
-	if !strings.Contains(email, "@") {
-		return errInvalidEmail
-	}
-
 	domparts := strings.Split(email, "@")
 
 	_, err = net.LookupMX(domparts[1])
