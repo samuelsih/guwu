@@ -2,23 +2,18 @@ package config
 
 import (
 	"log"
-	"os"
 
 	_ "embed"
-
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/jmoiron/sqlx"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/jmoiron/sqlx"
 )
 
 //go:embed init.up.sql
-var sqlInit string
+var sqlUp string
 
-//go:embed init.down.sql
-var sqlDown string
-
-func ConnectAndInitCockroach() *sqlx.DB {
-	db, err := sqlx.Open("pgx", os.Getenv("COCKROACH_DSN"))
+func ConnectPostgres(dsn string) *sqlx.DB {
+	db, err := sqlx.Open("pgx", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,8 +22,11 @@ func ConnectAndInitCockroach() *sqlx.DB {
 		log.Fatal("Cant ping:", err)
 	}
 
-	db.MustExec(sqlDown)
-	db.MustExec(sqlInit)
-
 	return db
+}
+
+func MigrateAll(db *sqlx.DB) error {
+	_, err := db.Exec(sqlUp)
+
+	return err
 }

@@ -25,8 +25,17 @@ type GuestLoginOut struct {
 	User *model.User `json:"user,omitempty"`
 }
 
-func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
+func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {	
 	var out GuestLoginOut
+
+	if len(in.Email) < 3 {
+		out.SetError(400, `invalid email`)
+		return out
+	}
+	if len(in.Password) < 3 {
+		out.SetError(400, `invalid password`)
+		return out
+	}
 
 	user := model.UserDeps{DB: u.DB}
 
@@ -39,7 +48,7 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 
 	if !result.PasswordMatches(in.Password) {
 		log.Debug().Stack().Err(err).Str("place", "user.PasswordMatches")
-		out.SetError(http.StatusBadRequest, `User or password does not match`)
+		out.SetError(http.StatusBadRequest, `email or password does not match`)
 		return out
 	}
 
@@ -70,10 +79,23 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 		return out
 	}
 
+	_, err := user.GetUserByEmail(in.Email)
+	if err == nil {
+		log.Debug().Stack().Err(err).Str("place", "validateSignIn")
+		out.SetError(http.StatusBadRequest, `email already exists`)
+		return out
+	}
+
 	result, err := user.Insert(ctx, in.Username, in.Email, in.Password)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.Insert")
-		out.SetError(http.StatusBadRequest, err.Error())
+		out.SetError(http.StatusInternalServerError, err.Error())
+		return out
+	}
+
+	if result == nil {
+		log.Debug().Stack().Err(err).Str("place", "user.Insert")
+		out.SetError(http.StatusInternalServerError, err.Error())
 		return out
 	}
 
@@ -86,7 +108,7 @@ type GuestLogoutOut struct {
 	CommonResponse
 }
 
-func (u *Guest) Logout(ctx context.Context, sessionID string) GuestLogoutOut {
+func (u *Guest) Logout(ctx context.Context, sessionID string) GuestLogoutOut {	
 	var out GuestLogoutOut
 
 	sess := model.SessionDeps{Conn: u.SessionDB}

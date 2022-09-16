@@ -3,14 +3,13 @@ package config
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/go-redis/redis/v8"
 	_ "github.com/joho/godotenv/autoload"
 )
 
-func NewRedis() *redis.Client {
-	opt, err := redis.ParseURL(os.Getenv("UPSTASH_URL"))
+func NewRedis(url string) *redis.Client {
+	opt, err := redis.ParseURL(url)
 	if err != nil {
 		panic(err)
 	}

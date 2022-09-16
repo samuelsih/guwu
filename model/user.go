@@ -2,11 +2,17 @@ package model
 
 import (
 	"context"
+	_ "embed"
+	"errors"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrUserNotFound = errors.New("user not found")
 )
 
 type User struct {
@@ -21,6 +27,15 @@ type User struct {
 type UserDeps struct {
 	DB *sqlx.DB
 }
+
+func (u *UserDeps) Migrate() error {	
+	_, err := u.DB.Exec(schema)
+	if err != nil {
+		return err
+	}
+
+	return nil
+} 
 
 func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (*User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -41,7 +56,7 @@ func (u *UserDeps) Insert(ctx context.Context, username, email, password string)
 
 	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
-		return nil, wrapErr(err, "User")
+		return nil, err
 	}
 
 	return &user, nil
@@ -54,7 +69,7 @@ func (u *UserDeps) GetUserByEmail(email string) (*User, error) {
 	err := u.DB.Get(&user, query, email)
 
 	if err != nil {
-		return nil, wrapErr(err, "Email")
+		return nil, ErrUserNotFound
 	}
 
 	return &user, nil
@@ -67,7 +82,7 @@ func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]*
 	err := u.DB.SelectContext(ctx, &users, query, username)
 
 	if err != nil {
-		return nil, wrapErr(err, "Username")
+		return nil, ErrUserNotFound
 	}
 
 	return users, nil

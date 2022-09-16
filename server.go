@@ -24,8 +24,8 @@ type Server struct {
 func NewServer() *Server {
 	s := &Server{
 		Router:    chi.NewRouter(),
-		DB:        config.ConnectAndInitCockroach(),
-		SessionDB: config.NewRedis(),
+		DB:        config.ConnectPostgres(os.Getenv("COCKROACH_DSN")),
+		SessionDB: config.NewRedis(os.Getenv("REDIS_URL")),
 	}
 	return s
 }
