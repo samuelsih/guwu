@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"sync"
 	"time"
 
@@ -68,10 +69,18 @@ func (u *SessionDeps) Get(ctx context.Context, key string) (*Session, error) {
 	return &userSession, err
 }
 
-func (u *SessionDeps) Delete(ctx context.Context, key ...string) error {
-	cmd := u.Conn.Del(ctx, key...)
+func (u *SessionDeps) Delete(ctx context.Context, key string) error {
+	if len(key) == 0 {
+		return errors.New(`user not found`)
+	}
 
-	return cmd.Err()
+	cmd := u.Conn.Del(ctx, key)
+
+	if cmd.Err() != nil {
+		return errors.New(`user not found`)
+	}
+
+	return nil
 }
 
 func generateSessID() (string, error) {

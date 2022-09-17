@@ -22,6 +22,7 @@ type GuestLoginIn struct {
 
 type GuestLoginOut struct {
 	CommonResponse
+	SessionID string `json:"-"`
 	User *model.User `json:"user,omitempty"`
 }
 
@@ -52,8 +53,23 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 		return out
 	}
 
-	out.SetOK()
+	sess := model.SessionDeps{Conn: u.SessionDB}
+	sessionData := model.Session{
+		ID: result.ID, 
+		Username: result.Username,
+		Email: result.Email,
+	}
+
+	sessionID, err := sess.Save(ctx, sessionData)
+	if err != nil {
+		log.Debug().Stack().Err(err).Str("place", "user.SaveSession")
+		out.SetError(http.StatusInternalServerError, `error creating user session`)
+		return out
+	}
+
 	out.User = result
+	out.SessionID = sessionID
+	out.SetOK()
 	return out
 }
 
@@ -65,6 +81,7 @@ type GuestRegisterIn struct {
 
 type GuestRegisterOut struct {
 	CommonResponse
+	SessionID string `json:"-"`
 	User *model.User `json:"user,omitempty"`
 }
 
@@ -99,7 +116,22 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 		return out
 	}
 
+	sess := model.SessionDeps{Conn: u.SessionDB}
+	sessionData := model.Session{
+		ID: result.ID, 
+		Username: result.Username,
+		Email: result.Email,
+	}
+
+	sessionID, err := sess.Save(ctx, sessionData)
+	if err != nil {
+		log.Debug().Stack().Err(err).Str("place", "user.SaveSession")
+		out.SetError(http.StatusInternalServerError, `error creating user session`)
+		return out
+	}
+
 	out.User = result
+	out.SessionID = sessionID
 	out.SetOK()
 	return out
 }

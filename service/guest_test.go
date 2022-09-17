@@ -85,6 +85,7 @@ func TestGuestRegister(t *testing.T) {
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
 		assert.NotNil(t, out.User)
+		assert.NotEmpty(t, out.SessionID)
 	})
 
 	t.Run(`Duplicate Insert`, func(t *testing.T) {
@@ -198,8 +199,69 @@ func TestLogin(t *testing.T) {
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
 		assert.NotNil(t, out.User)
 		assert.NotEmpty(t, out.User.ID)
+		assert.NotEmpty(t, out.SessionID)
 		assert.Equal(t, out.User.Email, "samuel@gmail.com")
 		assert.Equal(t, out.User.Username, "SamuelSamuelSamuel")
+	})
+}
+
+func TestLogout(t *testing.T) {
+	ctx := context.Background()
+
+	var sessionID string
+
+	guest := Guest{
+		DB: testGuestDB,
+		SessionDB: testGuestSessionDB,
+	}
+
+	t.Run(`Insert Success`, func(t *testing.T) {
+		in := GuestRegisterIn{
+			Email: "testuser@gmail.com",
+			Username: "TestUser",
+			Password: "Akubohong123!",
+		}
+
+		expected := GuestRegisterOut{
+			CommonResponse: CommonResponse{
+				StatusCode: http.StatusOK,
+				Msg: "OK",
+			},
+		}
+
+		out := guest.Register(ctx, &in)
+
+		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
+		assert.NotNil(t, out.User)
+		assert.NotEmpty(t, out.SessionID)
+
+		sessionID = out.SessionID
+	})
+
+	t.Run(`Empty Session`, func(t *testing.T){
+		expected := GuestLogoutOut{
+			CommonResponse: CommonResponse{
+				StatusCode: http.StatusBadRequest,
+				Msg: `user not found`,
+			},
+		}
+
+		out := guest.Logout(ctx, "")
+
+		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
+	})
+
+	t.Run(`Logout Must Success`, func(t *testing.T){
+		expected := GuestLogoutOut{
+			CommonResponse: CommonResponse{
+				StatusCode: http.StatusOK,
+				Msg: "OK",
+			},
+		}
+
+		out := guest.Logout(ctx, sessionID)
+
+		assert.Equal(t, out.CommonResponse, expected.CommonResponse)
 	})
 }
 
