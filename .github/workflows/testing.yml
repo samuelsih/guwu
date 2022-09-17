@@ -3,15 +3,30 @@ on: push
 name: Test
 
 jobs:
+  build:
+      strategy:
+        matrix:
+          go-version: [1.18.x, 1.19.x]
+          os: [ubuntu-latest]
+      runs-on: ${{ matrix.os }}
+      steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v3
+      - run: go build .\cmd\main.go
+
   test:
     strategy:
-      matrix:
+      matrix: 
         go-version: [1.18.x, 1.19.x]
         os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-    - uses: actions/setup-go@v3
-      with:
-        go-version: ${{ matrix.go-version }}
-    - uses: actions/checkout@v3
-    - run: go test ./... -cover
+      runs-on: ${{ matrix.os }}
+      steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v3
+      - run: go test ./... -cover
+
+  
