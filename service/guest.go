@@ -23,7 +23,7 @@ type GuestLoginIn struct {
 type GuestLoginOut struct {
 	CommonResponse
 	SessionID string `json:"-"`
-	User *model.User `json:"user,omitempty"`
+	User model.User `json:"user,omitempty"`
 }
 
 func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {	
@@ -82,7 +82,7 @@ type GuestRegisterIn struct {
 type GuestRegisterOut struct {
 	CommonResponse
 	SessionID string `json:"-"`
-	User *model.User `json:"user,omitempty"`
+	User model.User `json:"user,omitempty"`
 }
 
 func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegisterOut {
@@ -105,12 +105,6 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 
 	result, err := user.Insert(ctx, in.Username, in.Email, in.Password)
 	if err != nil {
-		log.Debug().Stack().Err(err).Str("place", "user.Insert")
-		out.SetError(http.StatusInternalServerError, err.Error())
-		return out
-	}
-
-	if result == nil {
 		log.Debug().Stack().Err(err).Str("place", "user.Insert")
 		out.SetError(http.StatusInternalServerError, err.Error())
 		return out

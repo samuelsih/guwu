@@ -14,7 +14,7 @@ type User struct {
 
 type UserFindOut struct {
 	CommonResponse
-	Users []*model.User `json:"users,omitempty"`
+	Users []model.User `json:"users,omitempty"`
 }
 
 func (u *User) FindUser(ctx context.Context, username string) UserFindOut {

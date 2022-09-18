@@ -64,7 +64,7 @@ func TestGuestRegister(t *testing.T) {
 		out := guest.Register(ctx, &in)
 
 		assert.Equal(t, expected, out)
-		assert.Nil(t, out.User)
+		assert.Empty(t, out.User)
 	})
 
 	t.Run(`Insert Success`, func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestGuestRegister(t *testing.T) {
 		out := guest.Register(ctx, &in)
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
-		assert.NotNil(t, out.User)
+		assert.NotEmpty(t, out.User)
 		assert.NotEmpty(t, out.SessionID)
 	})
 
@@ -129,7 +129,7 @@ func TestLogin(t *testing.T) {
 		out := guest.Login(ctx, &in)
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
-		assert.Nil(t, out.User)
+		assert.Empty(t, out.User)
 	})
 
 	t.Run(`Login Empty Password`, func(t *testing.T){
@@ -147,7 +147,7 @@ func TestLogin(t *testing.T) {
 		out := guest.Login(ctx, &in)
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
-		assert.Nil(t, out.User)
+		assert.Empty(t, out.User)
 	})
 
 	t.Run(`Login Email Not Found`, func(t *testing.T) {
@@ -159,7 +159,7 @@ func TestLogin(t *testing.T) {
 		out := guest.Login(ctx, &in)
 
 		assert.Equal(t, http.StatusBadRequest, out.StatusCode)
-		assert.Nil(t, out.User)
+		assert.Empty(t, out.User)
 	})
 
 	t.Run(`Login With Wrong Password`, func(t *testing.T) {
@@ -178,7 +178,7 @@ func TestLogin(t *testing.T) {
 		out := guest.Login(ctx, &in)
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
-		assert.Nil(t, out.User)
+		assert.Empty(t, out.User)
 	})
 
 	t.Run(`Success`, func(t *testing.T){
@@ -197,7 +197,7 @@ func TestLogin(t *testing.T) {
 		out := guest.Login(ctx, &in)
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
-		assert.NotNil(t, out.User)
+		assert.NotEmpty(t, out.User)
 		assert.NotEmpty(t, out.User.ID)
 		assert.NotEmpty(t, out.SessionID)
 		assert.Equal(t, out.User.Email, "samuel@gmail.com")
@@ -232,7 +232,7 @@ func TestLogout(t *testing.T) {
 		out := guest.Register(ctx, &in)
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
-		assert.NotNil(t, out.User)
+		assert.NotEmpty(t, out.User)
 		assert.NotEmpty(t, out.SessionID)
 
 		sessionID = out.SessionID

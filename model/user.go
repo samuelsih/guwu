@@ -28,19 +28,10 @@ type UserDeps struct {
 	DB *sqlx.DB
 }
 
-func (u *UserDeps) Migrate() error {	
-	_, err := u.DB.Exec(schema)
-	if err != nil {
-		return err
-	}
-
-	return nil
-} 
-
-func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (*User, error) {
+func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return User{}, err
 	}
 
 	user := User{
@@ -56,29 +47,29 @@ func (u *UserDeps) Insert(ctx context.Context, username, email, password string)
 
 	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
-		return nil, err
+		return User{}, err
 	}
 
-	return &user, nil
+	return user, nil
 }
 
-func (u *UserDeps) GetUserByEmail(email string) (*User, error) {
+func (u *UserDeps) GetUserByEmail(email string) (User, error) {
 	query := `SELECT id, username, email, password FROM users WHERE email = $1`
 
 	var user User
 	err := u.DB.Get(&user, query, email)
 
 	if err != nil {
-		return nil, ErrUserNotFound
+		return user, ErrUserNotFound
 	}
 
-	return &user, nil
+	return user, nil
 }
 
-func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]*User, error) {
+func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]User, error) {
 	query := `SELECT username FROM users WHERE username ILIKE $1`
 
-	var users []*User
+	var users []User
 	err := u.DB.SelectContext(ctx, &users, query, username)
 
 	if err != nil {

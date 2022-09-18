@@ -51,22 +51,22 @@ func (u *SessionDeps) Save(ctx context.Context, data Session) (string, error) {
 	return sessionID, cmd.Err()
 }
 
-func (u *SessionDeps) Get(ctx context.Context, key string) (*Session, error) {
+func (u *SessionDeps) Get(ctx context.Context, key string) (Session, error) {
 	var userSession Session
 
 	userFromDB, err := u.Conn.Get(ctx, key).Result()
 	if err != nil {
-		return &userSession, err
+		return userSession, err
 	}
 
 	r := bytes.NewReader([]byte(userFromDB))
 
 	err = decoder.NewStreamDecoder(r).Decode(&userSession)
 	if err != nil {
-		return &userSession, err
+		return userSession, err
 	}
 
-	return &userSession, err
+	return userSession, err
 }
 
 func (u *SessionDeps) Delete(ctx context.Context, key string) error {

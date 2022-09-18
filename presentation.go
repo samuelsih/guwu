@@ -16,7 +16,7 @@ func get[outType service.CommonOutput](svc func(context.Context) outType) http.H
 	return func(w http.ResponseWriter, r *http.Request) {
 		out := svc(r.Context())
 
-		if out.Common().StatusCode == 0 {
+		if out.CommonRes().StatusCode == 0 {
 			encoder := encoder.NewStreamEncoder(w)
 
 			w.WriteHeader(http.StatusOK)
@@ -26,7 +26,7 @@ func get[outType service.CommonOutput](svc func(context.Context) outType) http.H
 
 		encoder := encoder.NewStreamEncoder(w)
 
-		w.WriteHeader(out.Common().StatusCode)
+		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.Encode(out)
 	}
 }
@@ -37,7 +37,7 @@ func getWithParam[outType service.CommonOutput](svc func(context.Context, string
 
 		out := svc(r.Context(), urlParam)
 
-		if out.Common().StatusCode == 0 {
+		if out.CommonRes().StatusCode == 0 {
 			encoder := encoder.NewStreamEncoder(w)
 
 			w.WriteHeader(http.StatusOK)
@@ -47,12 +47,15 @@ func getWithParam[outType service.CommonOutput](svc func(context.Context, string
 
 		encoder := encoder.NewStreamEncoder(w)
 
-		w.WriteHeader(out.Common().StatusCode)
+		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.Encode(out)
 	}
 }
 
-func post[inType any, outType service.CommonOutput](sess model.SessionDeps, svc func(context.Context, *inType, model.Session) outType) http.HandlerFunc {
+func post[inType service.CommonInput, outType service.CommonOutput](
+	sess model.SessionDeps, 
+	svc func(context.Context, *inType) outType,
+	) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userSession, err := lookupUser(sess, r)
 		if err != nil {
@@ -64,6 +67,8 @@ func post[inType any, outType service.CommonOutput](sess model.SessionDeps, svc 
 		}
 		
 		var in inType
+
+		in.CommonReq().UserSession = userSession
 
 		encoder := encoder.NewStreamEncoder(w)
 		decoder := decoder.NewStreamDecoder(r.Body)
@@ -79,20 +84,20 @@ func post[inType any, outType service.CommonOutput](sess model.SessionDeps, svc 
 			return
 		}
 
-		out := svc(r.Context(), &in, *userSession)
+		out := svc(r.Context(), &in)
 
-		w.WriteHeader(out.Common().StatusCode)
+		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.Encode(out)
 	}
 }
 
-func put[inType any, outType service.CommonOutput](
+func put[inType service.CommonInput, outType service.CommonOutput](
 	sess model.SessionDeps, 
 	key string, 
-	svc func(context.Context, string, *inType, model.Session) outType) http.HandlerFunc {
-		
+	svc func(context.Context, string, *inType) outType,
+	) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userSess, err := lookupUser(sess, r)
+		userSession, err := lookupUser(sess, r)
 		if err != nil {
 			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
 				StatusCode: http.StatusBadRequest,
@@ -102,6 +107,8 @@ func put[inType any, outType service.CommonOutput](
 		}
 		
 		var in inType
+
+		in.CommonReq().UserSession = userSession
 
 		encoder := encoder.NewStreamEncoder(w)
 		decoder := decoder.NewStreamDecoder(r.Body)
@@ -117,15 +124,19 @@ func put[inType any, outType service.CommonOutput](
 			return
 		}
 
-		out := svc(r.Context(), chi.URLParam(r, key), &in, *userSess)
+		out := svc(r.Context(), chi.URLParam(r, key), &in)
 
-		w.WriteHeader(out.Common().StatusCode)
+		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.Encode(out)
 	}
 }
 
-func delete[inType any, outType service.CommonOutput](sess model.SessionDeps, svc func(context.Context, *model.Session) outType) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func delete[inType service.CommonInput, outType service.CommonOutput](
+	sess model.SessionDeps, 
+	key string, 
+	svc func(context.Context, string) outType,
+	) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {		
 		userSession, err := lookupUser(sess, r)
 		if err != nil {
 			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
@@ -134,10 +145,14 @@ func delete[inType any, outType service.CommonOutput](sess model.SessionDeps, sv
 			})
 			return
 		}
+		
+		var in inType
 
-		out := svc(r.Context(), userSession)
+		in.CommonReq().UserSession = userSession
 
-		w.WriteHeader(out.Common().StatusCode)
+		out := svc(r.Context(), chi.URLParam(r, key))
+
+		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.NewStreamEncoder(w).Encode(out)
 	}
 }
@@ -162,13 +177,13 @@ func loginOrRegister[inType any, outType service.CommonOutput](svc func(context.
 
 		out := svc(r.Context(), &in)
 
-		if out.Common().StatusCode == 0 {
+		if out.CommonRes().StatusCode == 0 {
 			w.WriteHeader(http.StatusOK)
 			encoder.Encode(out)
 			return
 		}
 
-		w.WriteHeader(out.Common().StatusCode)
+		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.Encode(out)
 	}
 }
@@ -187,21 +202,21 @@ func logout[outType service.CommonOutput](svc func(context.Context, string) outT
 
 		out := svc(r.Context(), sessionID.Value)
 
-		w.WriteHeader(out.Common().StatusCode)
+		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.NewStreamEncoder(w).Encode(out)
 	}
 }
 
-func lookupUser(sessionDeps model.SessionDeps, r *http.Request) (*model.Session, error) {
+func lookupUser(sessionDeps model.SessionDeps, r *http.Request) (model.Session, error) {
 	cookie, err := r.Cookie("app_session")
 	if err != nil {
-		return nil, errors.New(http.StatusText(http.StatusBadRequest))
+		return model.Session{}, errors.New(http.StatusText(http.StatusBadRequest))
 	}
 
 	user, err := sessionDeps.Get(r.Context(), cookie.Value)
 
-	if err != nil || user == nil {
-		return nil, errors.New(http.StatusText(http.StatusBadRequest))
+	if err != nil {
+		return model.Session{}, errors.New(http.StatusText(http.StatusBadRequest))
 	}
 
 	return user, nil
