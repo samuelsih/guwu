@@ -12,7 +12,7 @@ import (
 //go:embed init.up.sql
 var sqlUp string
 
-func ConnectPostgres(dsn string) *sqlx.DB {
+func ConnectPostgres(dsn string) *sqlx.DB {	
 	db, err := sqlx.Open("pgx", dsn)
 	if err != nil {
 		log.Fatal(err)

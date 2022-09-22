@@ -32,9 +32,9 @@ func NewServer() *Server {
 
 func (s *Server) load() {
 	guest := service.Guest{DB: s.DB}
-	user := service.User{DB: s.DB}
+	// user := service.User{DB: s.DB}
 
-	s.Router.Get("/user/{username}", getWithParam(user.FindUser, "username"))
+	// s.Router.Get("/user/{username}", getWithParam(user.FindUser, "username"))
 	s.Router.Post("/register", loginOrRegister(guest.Register))
 	s.Router.Post("/login", loginOrRegister(guest.Login))
 	s.Router.Delete("/logout", logout(guest.Logout))

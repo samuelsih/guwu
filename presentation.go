@@ -4,12 +4,20 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
+	"sync"
 
 	"github.com/bytedance/sonic/decoder"
 	"github.com/bytedance/sonic/encoder"
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/securecookie"
 	"github.com/samuelsih/guwu/model"
 	"github.com/samuelsih/guwu/service"
+)
+
+var (
+	securer = securecookie.New([]byte(os.Getenv("HASH_KEY")), nil)
+	mutex   sync.RWMutex
 )
 
 func get[outType service.CommonOutput](svc func(context.Context) outType) http.HandlerFunc {
@@ -57,7 +65,7 @@ func post[inType service.CommonInput, outType service.CommonOutput](
 	svc func(context.Context, *inType) outType,
 	) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userSession, err := lookupUser(sess, r)
+		userSession, err := readCookie(sess, r)
 		if err != nil {
 			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
 				StatusCode: http.StatusBadRequest,
@@ -86,6 +94,14 @@ func post[inType service.CommonInput, outType service.CommonOutput](
 
 		out := svc(r.Context(), &in)
 
+		if out.CommonRes().SessionID != "" {
+			if errCookie := setCookie(w, out.CommonRes().SessionID); errCookie != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				encoder.Encode(out)
+				return
+			}
+		}
+
 		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.Encode(out)
 	}
@@ -97,7 +113,7 @@ func put[inType service.CommonInput, outType service.CommonOutput](
 	svc func(context.Context, string, *inType) outType,
 	) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		userSession, err := lookupUser(sess, r)
+		userSession, err := readCookie(sess, r)
 		if err != nil {
 			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
 				StatusCode: http.StatusBadRequest,
@@ -137,7 +153,7 @@ func delete[inType service.CommonInput, outType service.CommonOutput](
 	svc func(context.Context, string) outType,
 	) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {		
-		userSession, err := lookupUser(sess, r)
+		userSession, err := readCookie(sess, r)
 		if err != nil {
 			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
 				StatusCode: http.StatusBadRequest,
@@ -207,13 +223,20 @@ func logout[outType service.CommonOutput](svc func(context.Context, string) outT
 	}
 }
 
-func lookupUser(sessionDeps model.SessionDeps, r *http.Request) (model.Session, error) {
+func readCookie(sessionDeps model.SessionDeps, r *http.Request) (model.Session, error) {
 	cookie, err := r.Cookie("app_session")
 	if err != nil {
 		return model.Session{}, errors.New(http.StatusText(http.StatusBadRequest))
 	}
 
-	user, err := sessionDeps.Get(r.Context(), cookie.Value)
+	var sessionID string
+
+	err = securer.Decode("app_session", cookie.Value, &sessionID)
+	if err != nil {
+		return model.Session{}, errors.New(http.StatusText(http.StatusBadRequest))
+	}
+
+	user, err := sessionDeps.Get(r.Context(), sessionID)
 
 	if err != nil {
 		return model.Session{}, errors.New(http.StatusText(http.StatusBadRequest))
@@ -221,3 +244,25 @@ func lookupUser(sessionDeps model.SessionDeps, r *http.Request) (model.Session, 
 
 	return user, nil
 }
+
+func setCookie(w http.ResponseWriter, value string) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	encoded, err := securer.Encode("app_session", value)
+	if err != nil {
+		return err
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name: "app_session",
+		Value: encoded,
+		Secure: true,
+		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
+		MaxAge: 24 * 60 * 3600,
+	})
+
+	return nil
+}
+

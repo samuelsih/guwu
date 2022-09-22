@@ -83,7 +83,8 @@ func TestGuestRegister(t *testing.T) {
 
 		out := guest.Register(ctx, &in)
 
-		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
+		assert.Equal(t, expected.StatusCode, out.StatusCode)
+		assert.Equal(t, expected.Msg, out.Msg)
 		assert.NotEmpty(t, out.User)
 		assert.NotEmpty(t, out.SessionID)
 	})
@@ -196,7 +197,8 @@ func TestLogin(t *testing.T) {
 
 		out := guest.Login(ctx, &in)
 
-		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
+		assert.Equal(t, expected.StatusCode, out.StatusCode)
+		assert.Equal(t, expected.Msg, out.Msg)
 		assert.NotEmpty(t, out.User)
 		assert.NotEmpty(t, out.User.ID)
 		assert.NotEmpty(t, out.SessionID)
@@ -231,7 +233,8 @@ func TestLogout(t *testing.T) {
 
 		out := guest.Register(ctx, &in)
 
-		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
+		assert.Equal(t, expected.StatusCode, out.StatusCode)
+		assert.Equal(t, expected.Msg, out.Msg)
 		assert.NotEmpty(t, out.User)
 		assert.NotEmpty(t, out.SessionID)
 

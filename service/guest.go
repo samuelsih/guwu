@@ -22,7 +22,6 @@ type GuestLoginIn struct {
 
 type GuestLoginOut struct {
 	CommonResponse
-	SessionID string `json:"-"`
 	User model.User `json:"user,omitempty"`
 }
 
@@ -81,7 +80,6 @@ type GuestRegisterIn struct {
 
 type GuestRegisterOut struct {
 	CommonResponse
-	SessionID string `json:"-"`
 	User model.User `json:"user,omitempty"`
 }
 
