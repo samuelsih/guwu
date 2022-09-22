@@ -13,6 +13,10 @@ import (
 var sqlUp string
 
 func ConnectPostgres(dsn string) *sqlx.DB {	
+	if dsn == "" {
+		dsn = "host=localhost port=5432 user=postgres password=postgres dbname=testdb sslmode=disable timezone=UTC connect_timeout=5"
+	}
+
 	db, err := sqlx.Open("pgx", dsn)
 	if err != nil {
 		log.Fatal(err)

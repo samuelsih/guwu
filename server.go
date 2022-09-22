@@ -21,11 +21,20 @@ type Server struct {
 	SessionDB *redis.Client
 }
 
-func NewServer() *Server {
+func NewServer(production bool) *Server {
+	if production {
+		s := &Server{
+			Router:    chi.NewRouter(),
+			DB:        config.ConnectPostgres(os.Getenv("COCKROACH_DSN")),
+			SessionDB: config.NewRedis(os.Getenv("REDIS_URL")),
+		}
+		return s
+	}
+
 	s := &Server{
 		Router:    chi.NewRouter(),
-		DB:        config.ConnectPostgres(os.Getenv("COCKROACH_DSN")),
-		SessionDB: config.NewRedis(os.Getenv("REDIS_URL")),
+		DB:        config.ConnectPostgres(""),
+		SessionDB: config.NewRedis(""),
 	}
 	return s
 }

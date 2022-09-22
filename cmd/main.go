@@ -14,6 +14,7 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	debug := flag.Bool("debug", false, "sets log level to debug")
+	production := flag.Bool("production", false, "is in prod.")
 
 	flag.Parse()
 
@@ -22,7 +23,7 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
-	server := guwu.NewServer()
+	server := guwu.NewServer(*production)
 
 	stop := make(chan os.Signal, 1)
 	defer close(stop)
