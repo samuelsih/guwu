@@ -26,15 +26,14 @@ type Session struct {
 
 type SessionDeps struct {
 	Conn *redis.Client
+	mx sync.RWMutex
 }
 
 func (u *SessionDeps) Save(ctx context.Context, data Session) (string, error) {
-	var mx sync.RWMutex
-
-	mx.RLock()
-	defer mx.RUnlock()
-
-	buf, err := sonic.Marshal(data)
+	u.mx.RLock()
+	defer u.mx.RUnlock()
+	
+	buf, err := sonic.Marshal(&data)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +44,7 @@ func (u *SessionDeps) Save(ctx context.Context, data Session) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	
 	cmd := u.Conn.Set(ctx, sessionID, value, time.Duration(day) * time.Second)
 
 	return sessionID, cmd.Err()

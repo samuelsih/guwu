@@ -5,13 +5,14 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/rs/zerolog/log"
 )
 
 func NewRedis(url string) *redis.Client {
 	var rdb *redis.Client
 	
 	if url == "" {
-		url = `127.0.0.1:6379`
+		url = `localhost:6379`
 		rdb = redis.NewClient(&redis.Options{
 			Addr: url,
 			Password: "",
@@ -30,6 +31,12 @@ func NewRedis(url string) *redis.Client {
 	if err != nil {
 		panic(err)
 	}
+
+	if rdb == nil {
+		panic(`Redis connection is nil`)
+	}
+
+	log.Info().Msg("Redis serve on : " + url)
 
 	return rdb
 }

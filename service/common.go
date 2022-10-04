@@ -13,7 +13,7 @@ type CommonRequest struct {
 type CommonResponse struct {
 	StatusCode int    `json:"code,omitempty"`
 	Msg        string `json:"message,omitempty"`
-	SessionID string `json:""`
+	SessionID string `json:"-"`
 }
 
 func (o *CommonResponse) SetError(statusCode int, errMsg string) {

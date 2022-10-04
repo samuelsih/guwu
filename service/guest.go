@@ -32,6 +32,7 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 		out.SetError(400, `invalid email`)
 		return out
 	}
+
 	if len(in.Password) < 3 {
 		out.SetError(400, `invalid password`)
 		return out

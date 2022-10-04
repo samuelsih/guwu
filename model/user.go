@@ -8,6 +8,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,6 +32,7 @@ type UserDeps struct {
 func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Debug().Stack().Err(err).Str("place", "user.Insert.HashPassword")
 		return User{}, err
 	}
 
@@ -47,6 +49,7 @@ func (u *UserDeps) Insert(ctx context.Context, username, email, password string)
 
 	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
+		log.Debug().Stack().Err(err).Str("place", "user.Insert.ExecContext")
 		return User{}, err
 	}
 
@@ -60,6 +63,7 @@ func (u *UserDeps) GetUserByEmail(email string) (User, error) {
 	err := u.DB.Get(&user, query, email)
 
 	if err != nil {
+		log.Debug().Stack().Err(err).Str("place", "user.GetUserByEmail")
 		return user, ErrUserNotFound
 	}
 
@@ -73,6 +77,7 @@ func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]U
 	err := u.DB.SelectContext(ctx, &users, query, username)
 
 	if err != nil {
+		log.Debug().Stack().Err(err).Str("place", "user.FindUserByUsername")
 		return nil, ErrUserNotFound
 	}
 

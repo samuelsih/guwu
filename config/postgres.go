@@ -1,12 +1,13 @@
 package config
 
 import (
-	"log"
+	"github.com/rs/zerolog/log"
 
 	_ "embed"
+
 	_ "github.com/jackc/pgx/v4/stdlib"
-	_ "github.com/joho/godotenv/autoload"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 //go:embed init.up.sql
@@ -19,12 +20,14 @@ func ConnectPostgres(dsn string) *sqlx.DB {
 
 	db, err := sqlx.Open("pgx", dsn)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	if err := db.Ping(); err != nil {
-		log.Fatal("Cant ping:", err)
+		log.Fatal().Msg(err.Error())
 	}
+
+	log.Info().Msg("Postgres serve on : " + dsn)
 
 	return db
 }

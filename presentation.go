@@ -193,9 +193,16 @@ func loginOrRegister[inType any, outType service.CommonOutput](svc func(context.
 
 		out := svc(r.Context(), &in)
 
-		if out.CommonRes().StatusCode == 0 {
-			w.WriteHeader(http.StatusOK)
+		if out.CommonRes().StatusCode >= 400 {
+			w.WriteHeader(out.CommonRes().StatusCode)
 			encoder.Encode(out)
+			return
+		}
+
+		err = setCookie(w, out.CommonRes().SessionID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			encoder.Encode(map[string]string{"error": err.Error()})
 			return
 		}
 
@@ -206,17 +213,29 @@ func loginOrRegister[inType any, outType service.CommonOutput](svc func(context.
 
 func logout[outType service.CommonOutput](svc func(context.Context, string) outType) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := r.Cookie("app_session")
+		cookie, err := r.Cookie("app_session")
 		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
 			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
 				StatusCode: http.StatusBadRequest,
-				Msg:        err.Error(),
+				Msg:        `cookie not found`,
 			})
-
 			return
 		}
 
-		out := svc(r.Context(), sessionID.Value)
+		var sessionID string
+
+		err = securer.Decode("app_session", cookie.Value, &sessionID)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
+				StatusCode: http.StatusBadRequest,
+				Msg:        `unknown user`,
+			})
+			return
+		}
+
+		out := svc(r.Context(), sessionID)
 
 		w.WriteHeader(out.CommonRes().StatusCode)
 		encoder.NewStreamEncoder(w).Encode(out)
@@ -225,7 +244,7 @@ func logout[outType service.CommonOutput](svc func(context.Context, string) outT
 
 func readCookie(sessionDeps model.SessionDeps, r *http.Request) (model.Session, error) {
 	cookie, err := r.Cookie("app_session")
-	if err != nil {
+	if err != nil || cookie.Value == "" {
 		return model.Session{}, errors.New(http.StatusText(http.StatusBadRequest))
 	}
 
@@ -254,15 +273,16 @@ func setCookie(w http.ResponseWriter, value string) error {
 		return err
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name: "app_session",
-		Value: encoded,
-		Secure: true,
+	cookie := http.Cookie{
+		Name:     "app_session",
+		Value:    encoded,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
-		MaxAge: 24 * 60 * 3600,
-	})
+		MaxAge:   24 * 3600,
+	}
 
+	http.SetCookie(w, &cookie)
 	return nil
 }
 

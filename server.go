@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/joho/godotenv/autoload"
@@ -28,6 +29,9 @@ func NewServer(production bool) *Server {
 			DB:        config.ConnectPostgres(os.Getenv("COCKROACH_DSN")),
 			SessionDB: config.NewRedis(os.Getenv("REDIS_URL")),
 		}
+
+		config.MigrateAll(s.DB)
+
 		return s
 	}
 
@@ -36,21 +40,25 @@ func NewServer(production bool) *Server {
 		DB:        config.ConnectPostgres(""),
 		SessionDB: config.NewRedis(""),
 	}
+
+	config.MigrateAll(s.DB)
+
 	return s
 }
 
 func (s *Server) load() {
-	guest := service.Guest{DB: s.DB}
+	guest := service.Guest{DB: s.DB, SessionDB: s.SessionDB}
 	// user := service.User{DB: s.DB}
 
 	// s.Router.Get("/user/{username}", getWithParam(user.FindUser, "username"))
 	s.Router.Post("/register", loginOrRegister(guest.Register))
 	s.Router.Post("/login", loginOrRegister(guest.Login))
-	s.Router.Delete("/logout", logout(guest.Logout))
+	s.Router.Post("/logout", logout(guest.Logout))
 }
 
 func (s *Server) Run(stop <-chan os.Signal) {
 	s.Router.Use(
+		middleware.RequestID,
 		s.Logger(),
 		s.JSONResponse(),
 	)
