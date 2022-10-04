@@ -16,6 +16,7 @@ import (
 
 var (
 	day = 24 * 60 * 3600
+	mx sync.RWMutex
 )
 
 type Session struct {
@@ -26,12 +27,11 @@ type Session struct {
 
 type SessionDeps struct {
 	Conn *redis.Client
-	mx sync.RWMutex
 }
 
 func (u *SessionDeps) Save(ctx context.Context, data Session) (string, error) {
-	u.mx.RLock()
-	defer u.mx.RUnlock()
+	mx.RLock()
+	defer mx.RUnlock()
 	
 	buf, err := sonic.Marshal(&data)
 	if err != nil {
