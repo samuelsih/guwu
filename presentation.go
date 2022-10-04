@@ -80,6 +80,7 @@ func post[inType service.CommonInput, outType service.CommonOutput](
 
 		encoder := encoder.NewStreamEncoder(w)
 		decoder := decoder.NewStreamDecoder(r.Body)
+		defer r.Body.Close()
 		decoder.DisallowUnknownFields()
 
 		err = decoder.Decode(&in)
@@ -128,6 +129,7 @@ func put[inType service.CommonInput, outType service.CommonOutput](
 
 		encoder := encoder.NewStreamEncoder(w)
 		decoder := decoder.NewStreamDecoder(r.Body)
+		defer r.Body.Close()
 		decoder.DisallowUnknownFields()
 
 		err = decoder.Decode(&in)
@@ -179,6 +181,7 @@ func loginOrRegister[inType any, outType service.CommonOutput](svc func(context.
 
 		encoder := encoder.NewStreamEncoder(w)
 		decoder := decoder.NewStreamDecoder(r.Body)
+		defer r.Body.Close()
 		decoder.DisallowUnknownFields()
 
 		err := decoder.Decode(&in)
