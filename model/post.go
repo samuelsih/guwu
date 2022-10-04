@@ -51,6 +51,8 @@ func (p *PostDeps) GetUserAllPosts(ctx context.Context, userID string) ([]Post, 
 		return nil, errors.New(`no posts on this user`)
 	}
 
+	defer rows.Close()
+
 	for rows.Next() {
 		var post Post
 		err = rows.StructScan(&post)
