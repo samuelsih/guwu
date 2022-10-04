@@ -97,6 +97,18 @@ func (s *Server) Run(stop <-chan os.Signal) {
 		return nil
 	})
 
+	eg.Go(func() error {
+		err := s.SessionDB.Close()
+
+		if err != nil {
+			log.Error().Msg("Error closing session db: " + err.Error())
+			return err
+		}
+
+		log.Info().Msg("Closing Session DB Success")
+		return nil
+	})
+
 	if err := eg.Wait(); err != nil {
 		log.Fatal().Msg("Error on closing database" + err.Error())
 	}
