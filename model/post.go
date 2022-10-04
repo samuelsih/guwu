@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
-	"github.com/rs/zerolog/log"
 	"github.com/rs/xid"
+	"github.com/rs/zerolog/log"
 )
 
 type Post struct {
@@ -33,22 +33,28 @@ func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post
 
 	_, err := p.DB.ExecContext(ctx, query, post.ID, post.Description, userID)
 	if err != nil {
+		if errSQL, ok := err.(*pgconn.PgError); ok {
+			switch errSQL.Code {
+				case pgerrcode.ForeignKeyViolation:	
+					return Post{}, errors.New(`unknown user`)
+			}
+		}
 		log.Debug().Stack().Err(err).Str("place", "posts.InsertUser.ExecContext")
-		return Post{}, wrapErr(err)
+		return Post{}, errors.New(`can't add posts right now`)
 	}
 
 	return post, nil
 }
 
-func (p *PostDeps) GetUserAllPosts(ctx context.Context, userID string) ([]Post, error) {
-	query := `SELECT id, description, created_at FROM posts WHERE user_id = $1`
+func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, error) {
+	query := `SELECT id, description, created_at, updated_at FROM posts JOIN users on posts.user_id = users.id`
 
 	var posts []Post
-	rows, err := p.DB.QueryxContext(ctx, query, userID)
+	rows, err := p.DB.QueryxContext(ctx, query)
 
 	if err != nil {
-		log.Debug().Stack().Err(err).Str("place", "posts.GetUserAllPosts.QueryxContext")
-		return nil, errors.New(`no posts on this user`)
+		log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline.QueryxContext")
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -58,27 +64,25 @@ func (p *PostDeps) GetUserAllPosts(ctx context.Context, userID string) ([]Post, 
 		err = rows.StructScan(&post)
 
 		if err != nil {
-			log.Debug().Stack().Err(err).Str("place", "posts.GetUserAllPosts.StructScan")
-			return nil, errors.New(`error getting posts on this user`)
+			log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline.StructScan")
+			return nil, err
 		}
 
 		posts = append(posts, post)
 	}
 
-	if posts == nil {
-		return nil, errors.New(`no posts found`)
-	}
-
 	return posts, nil
 }
 
-func wrapErr(errSQL error) error {
-	if err, ok := errSQL.(*pgconn.PgError); ok {
-		switch err.Code {
-			case pgerrcode.ForeignKeyViolation:	
-				return errors.New(`unknown user`)
-		}
-	}
+func (p *PostDeps) Update(ctx context.Context, description string, userID string) (Post, error) {
+	query := `UPDATE posts SET description = $1, updated_at = $2 WHERE user_id = $3 RETURNING *`
 
-	return errors.New(`internal server error, please try again later`)
+	var post Post
+	err := p.DB.QueryRowxContext(ctx, query, description, time.Now(), userID).StructScan(&post)
+
+	if err != nil {
+		return post, err
+	}
+	
+	return post, nil 
 }
