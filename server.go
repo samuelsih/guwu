@@ -12,6 +12,7 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rs/zerolog/log"
 	"github.com/samuelsih/guwu/config"
+	"github.com/samuelsih/guwu/model"
 	"github.com/samuelsih/guwu/service"
 	"golang.org/x/sync/errgroup"
 )
@@ -47,13 +48,18 @@ func NewServer(production bool) *Server {
 }
 
 func (s *Server) load() {
-	guest := service.Guest{DB: s.DB, SessionDB: s.SessionDB}
-	// user := service.User{DB: s.DB}
+	session := model.SessionDeps{Conn: s.SessionDB}
 
-	// s.Router.Get("/user/{username}", getWithParam(user.FindUser, "username"))
+	guest := service.Guest{DB: s.DB, SessionDB: s.SessionDB}
+	posts := service.Post{DB: s.DB}
+
 	s.Router.Post("/register", loginOrRegister(guest.Register))
 	s.Router.Post("/login", loginOrRegister(guest.Login))
 	s.Router.Post("/logout", logout(guest.Logout))
+
+	s.Router.Get("/timeline", get(posts.Timeline))
+	s.Router.Post("/post", post(session, posts.Insert))
+	s.Router.Put("/post/{id}", put(session, "id", posts.Edit))
 }
 
 func (s *Server) Run(stop <-chan os.Signal) {

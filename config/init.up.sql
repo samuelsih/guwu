@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS posts (
     id varchar(100) not null primary key,
     user_id varchar(100) not null,
     description text not null,
-    FOREIGN KEY (id) REFERENCES users(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
     created_at timestamp not null default now(),
     updated_at timestamp default null
 );

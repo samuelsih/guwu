@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"net/http"
+	"unicode/utf8"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	"github.com/samuelsih/guwu/model"
 )
 
-type PostDeps struct {
+type Post struct {
 	DB *sqlx.DB
 }
 
@@ -18,7 +19,7 @@ type PostTimelineOut struct {
 	Posts []model.Post `json:"posts,omitempty"`
 }
 
-func (p *PostDeps) Timeline(ctx context.Context) PostTimelineOut {
+func (p *Post) Timeline(ctx context.Context) PostTimelineOut {
 	var out PostTimelineOut
 
 	post := model.PostDeps{DB: p.DB}
@@ -26,13 +27,7 @@ func (p *PostDeps) Timeline(ctx context.Context) PostTimelineOut {
 	result, err := post.GetTimeline(ctx)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline")
-		out.SetError(http.StatusBadRequest, err.Error())
-		return out
-	}
-
-	if len(result) == 0 {
-		log.Debug().Stack().Err(err).Str("place", "posts.len(result")
-		out.SetError(http.StatusNoContent, `no posts for now`)
+		out.SetError(http.StatusInternalServerError, err.Error())
 		return out
 	}
 
@@ -51,8 +46,18 @@ type PostInsertOut struct {
 	Post model.Post `json:"post"` 
 }
 
-func (p *PostDeps) Insert(ctx context.Context, in *PostInsertIn) PostInsertOut {
+func (p *Post) Insert(ctx context.Context, in *PostInsertIn) PostInsertOut {
 	var out PostInsertOut
+
+	if in.Description == "" {
+		out.SetError(http.StatusBadRequest, `description is required`)
+		return out
+	}
+
+	if utf8.RuneCountInString(in.Description) > 512 {
+		out.SetError(http.StatusBadRequest, `description is too long, max is 512 characters`)
+		return out
+	}
 
 	post := model.PostDeps{DB: p.DB}
 
@@ -78,12 +83,12 @@ type PostEditOut struct {
 	Post model.Post `json:"post"`
 }
 
-func (p *PostDeps) Edit(ctx context.Context, in *PostEditIn) PostEditOut {
+func (p *Post) Edit(ctx context.Context, postID string, in *PostEditIn) PostEditOut {
 	var out PostEditOut
 
 	post := model.PostDeps{DB: p.DB}
 
-	result, err := post.Update(ctx, in.Description, in.UserSession.ID)
+	result, err := post.Update(ctx, in.Description, postID, in.UserSession.ID)
 	if err != nil {
 		out.SetError(http.StatusBadRequest, err.Error())
 		return out
