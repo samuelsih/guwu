@@ -22,7 +22,7 @@ type User struct {
 	Email     string    `db:"email" json:"email"`
 	Password  string    `db:"password" json:"-"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at,omitempty"`
+	UpdatedAt NullTime `db:"updated_at" json:"updated_at,omitempty"`
 }
 
 type UserDeps struct {

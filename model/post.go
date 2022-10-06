@@ -18,7 +18,7 @@ type Post struct {
 	UserID string `db:"user_id" json:"user_id"`
 	Description string `db:"description" json:"description"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt sql.NullTime `db:"updated_at" json:"updated_at,omitempty"`
+	UpdatedAt NullTime `db:"updated_at" json:"updated_at,omitempty"`
 }
 
 type PostDeps struct {
