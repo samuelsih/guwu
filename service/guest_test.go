@@ -34,7 +34,7 @@ func TestGuestRegister(t *testing.T) {
 
 	t.Run(`Insert Success`, func(t *testing.T) {
 		in := GuestRegisterIn{
-			Email: "samuel@gmail.com",
+			Email: "samuel02@gmail.com",
 			Username: "SamuelSamuelSamuel",
 			Password: "Akubohong123!",
 		}
@@ -56,7 +56,13 @@ func TestGuestRegister(t *testing.T) {
 
 	t.Run(`Duplicate Insert`, func(t *testing.T) {
 		in := GuestRegisterIn{
-			Email: "samuel@gmail.com",
+			Email: "samuel90@gmail.com",
+			Username: "HayangUlinAing",
+			Password: "GajadiBohong123!",
+		}
+
+		in2 := GuestRegisterIn{
+			Email: "samuel90@gmail.com",
 			Username: "HayangUlinAing",
 			Password: "GajadiBohong123!",
 		}
@@ -68,7 +74,8 @@ func TestGuestRegister(t *testing.T) {
 			},
 		}
 
-		out := guest.Register(ctx, &in)
+		_ = guest.Register(ctx, &in)
+		out := guest.Register(ctx, &in2)
 
 		assert.Equal(t, expected.CommonResponse, out.CommonResponse)
 	})
@@ -129,9 +136,15 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run(`Login With Wrong Password`, func(t *testing.T) {
+		_ = guest.Register(ctx, &GuestRegisterIn{
+			Email: "samuel911@gmail.com",
+			Username: "HayangUlinAing",
+			Password: "GajadiBohong123!",
+		})
+
 		in := GuestLoginIn{
-			Email: "samuel@gmail.com",
-			Password: "123123",
+			Email: "samuel911@gmail.com",
+			Password: "GajadiBohong123",
 		}
 
 		expected := GuestLoginOut{
@@ -149,8 +162,8 @@ func TestLogin(t *testing.T) {
 
 	t.Run(`Success`, func(t *testing.T){
 		in := GuestLoginIn{
-			Email: "samuel@gmail.com",
-			Password: "Akubohong123!",
+			Email: "samuel911@gmail.com",
+			Password: "GajadiBohong123!",
 		}
 
 		expected := GuestLoginOut{
@@ -167,8 +180,8 @@ func TestLogin(t *testing.T) {
 		assert.NotEmpty(t, out.User)
 		assert.NotEmpty(t, out.User.ID)
 		assert.NotEmpty(t, out.SessionID)
-		assert.Equal(t, out.User.Email, "samuel@gmail.com")
-		assert.Equal(t, out.User.Username, "SamuelSamuelSamuel")
+		assert.Equal(t, out.User.Email, "samuel911@gmail.com")
+		assert.Equal(t, out.User.Username, "HayangUlinAing")
 	})
 }
 

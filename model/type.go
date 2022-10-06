@@ -7,6 +7,8 @@ import (
 	"fmt"
 )
 
+type statusCode = int
+
 type NullTime struct {
 	sql.NullTime
 }

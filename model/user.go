@@ -6,6 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog/log"
@@ -29,11 +31,11 @@ type UserDeps struct {
 	DB *sqlx.DB
 }
 
-func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (User, error) {
+func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (User, statusCode, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.Insert.HashPassword")
-		return User{}, err
+		return User{}, InternalServerError, err
 	}
 
 	user := User{
@@ -49,14 +51,20 @@ func (u *UserDeps) Insert(ctx context.Context, username, email, password string)
 
 	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
+		if errSQL, ok := err.(*pgconn.PgError); ok {
+			switch errSQL.Code {
+				case pgerrcode.UniqueViolation:	
+					return User{}, BadRequest, errors.New(`email already exists`)
+			}
+		}
 		log.Debug().Stack().Err(err).Str("place", "user.Insert.ExecContext")
-		return User{}, err
+		return User{}, InternalServerError, err
 	}
 
-	return user, nil
+	return user, Created, nil
 }
 
-func (u *UserDeps) GetUserByEmail(email string) (User, error) {
+func (u *UserDeps) GetUserByEmail(email string) (User, statusCode, error) {
 	query := `SELECT id, username, email, password FROM users WHERE email = $1`
 
 	var user User
@@ -64,13 +72,13 @@ func (u *UserDeps) GetUserByEmail(email string) (User, error) {
 
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.GetUserByEmail")
-		return user, ErrUserNotFound
+		return user, BadRequest, ErrUserNotFound
 	}
-
-	return user, nil
+	
+	return user, OK, nil
 }
 
-func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]User, error) {
+func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]User, statusCode, error) {
 	query := `SELECT username FROM users WHERE username ILIKE $1`
 
 	var users []User
@@ -78,10 +86,10 @@ func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]U
 
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.FindUserByUsername")
-		return nil, ErrUserNotFound
+		return nil, InternalServerError, ErrUserNotFound
 	}
 
-	return users, nil
+	return users, OK, nil
 }
 
 func (u *User) PasswordMatches(password string) bool {

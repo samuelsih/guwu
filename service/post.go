@@ -24,10 +24,10 @@ func (p *Post) Timeline(ctx context.Context) PostTimelineOut {
 
 	post := model.PostDeps{DB: p.DB}
 
-	result, err := post.GetTimeline(ctx)
+	result, statusCode, err := post.GetTimeline(ctx)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline")
-		out.SetError(http.StatusInternalServerError, err.Error())
+		out.SetError(statusCode, err.Error())
 		return out
 	}
 
@@ -61,10 +61,10 @@ func (p *Post) Insert(ctx context.Context, in *PostInsertIn) PostInsertOut {
 
 	post := model.PostDeps{DB: p.DB}
 
-	result, err := post.Insert(ctx, in.Description, in.UserSession.ID)
+	result, statusCode, err := post.Insert(ctx, in.Description, in.UserSession.ID)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "posts.Insert")
-		out.SetError(http.StatusBadRequest, err.Error())
+		out.SetError(statusCode, err.Error())
 		return out
 	}
 
@@ -88,9 +88,9 @@ func (p *Post) Edit(ctx context.Context, postID string, in *PostEditIn) PostEdit
 
 	post := model.PostDeps{DB: p.DB}
 
-	result, err := post.Update(ctx, in.Description, postID, in.UserSession.ID)
+	result, statusCode, err := post.Update(ctx, in.Description, postID, in.UserSession.ID)
 	if err != nil {
-		out.SetError(http.StatusBadRequest, err.Error())
+		out.SetError(statusCode, err.Error())
 		return out
 	}
 

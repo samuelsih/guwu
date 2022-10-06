@@ -40,10 +40,10 @@ func (u *Guest) Login(ctx context.Context, in *GuestLoginIn) GuestLoginOut {
 
 	user := model.UserDeps{DB: u.DB}
 
-	result, err := user.GetUserByEmail(in.Email)
+	result, statusCode, err := user.GetUserByEmail(in.Email)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.GetUserByEmail")
-		out.SetError(http.StatusBadRequest, err.Error())
+		out.SetError(statusCode, err.Error())
 		return out
 	}
 
@@ -95,17 +95,10 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 		return out
 	}
 
-	_, err := user.GetUserByEmail(in.Email)
-	if err == nil {
-		log.Debug().Stack().Err(err).Str("place", "validateSignIn")
-		out.SetError(http.StatusBadRequest, `email already exists`)
-		return out
-	}
-
-	result, err := user.Insert(ctx, in.Username, in.Email, in.Password)
+	result, statusCode, err := user.Insert(ctx, in.Username, in.Email, in.Password)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.Insert")
-		out.SetError(http.StatusInternalServerError, err.Error())
+		out.SetError(statusCode, err.Error())
 		return out
 	}
 

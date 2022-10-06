@@ -23,6 +23,12 @@ func TestPostGetTimeline(t *testing.T) {
 		SessionDB: testSessionDB,
 	}
 
+	_ = guest.Register(ctx, &GuestRegisterIn{
+		Email: "samuel@gmail.com",
+		Username: "AingMaung123",
+		Password: "Akubohong123!",
+	})
+
 	loginUser := guest.Login(ctx, &GuestLoginIn{
 		Email: "samuel@gmail.com",
 		Password: "Akubohong123!",
@@ -81,6 +87,12 @@ func TestPostInsert(t *testing.T) {
 		DB: testDB,
 		SessionDB: testSessionDB,
 	}
+
+	_ = guest.Register(ctx, &GuestRegisterIn{
+		Email: "samuel@gmail.com",
+		Username: "AingMaung123",
+		Password: "Akubohong123!",
+	})
 
 	loginUser := guest.Login(ctx, &GuestLoginIn{
 		Email: "samuel@gmail.com",
@@ -189,6 +201,12 @@ func TestPostEdit(t *testing.T) {
 		DB: testDB,
 		SessionDB: testSessionDB,
 	}
+
+	_ = guest.Register(ctx, &GuestRegisterIn{
+		Email: "samuel@gmail.com",
+		Username: "AingMaung123",
+		Password: "Akubohong123!",
+	})
 
 	loginUser := guest.Login(ctx, &GuestLoginIn{
 		Email: "samuel@gmail.com",

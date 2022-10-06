@@ -25,7 +25,7 @@ type PostDeps struct {
 	DB *sqlx.DB
 }
 
-func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post, error) {
+func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post, statusCode, error) {
 	query := `INSERT INTO posts(id, description, user_id) VALUES ($1, $2, $3)`
 
 	post := Post{
@@ -38,17 +38,17 @@ func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post
 		if errSQL, ok := err.(*pgconn.PgError); ok {
 			switch errSQL.Code {
 				case pgerrcode.ForeignKeyViolation:	
-					return Post{}, errors.New(`unknown user`)
+					return Post{}, BadRequest, errors.New(`unknown user`)
 			}
 		}
 		log.Debug().Stack().Err(err).Str("place", "posts.InsertUser.ExecContext")
-		return Post{}, err
+		return Post{}, BadRequest, err
 	}
 
-	return post, nil
+	return post, OK, nil
 }
 
-func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, error) {
+func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, int, error) {
 	query := `SELECT p.id, p.description, p.created_at, p.updated_at FROM posts AS p JOIN users AS u on p.user_id = u.id`
 
 	var posts []Post
@@ -56,7 +56,7 @@ func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, error) {
 
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline.QueryxContext")
-		return nil, err
+		return nil, InternalServerError, err
 	}
 
 	defer rows.Close()
@@ -67,16 +67,20 @@ func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, error) {
 
 		if err != nil {
 			log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline.StructScan")
-			return nil, err
+			return nil, InternalServerError, err
 		}
 
 		posts = append(posts, post)
 	}
 
-	return posts, nil
+	if len(posts) == 0 {
+		return posts, NoContent, nil
+	}
+
+	return posts, OK, nil
 }
 
-func (p *PostDeps) Update(ctx context.Context, description string, postID, userID string) (Post, error) {
+func (p *PostDeps) Update(ctx context.Context, description string, postID, userID string) (Post, statusCode, error) {
 	query := `UPDATE posts SET description = $1, updated_at = $2 WHERE user_id = $3 RETURNING *`
 
 	var post Post
@@ -84,11 +88,18 @@ func (p *PostDeps) Update(ctx context.Context, description string, postID, userI
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return post, errors.New(`unknown user`)
+			return post, BadRequest, errors.New(`unknown user`)
 		}
+
+		if errSQL, ok := err.(*pgconn.PgError); ok {
+			switch errSQL.Code {
+				case pgerrcode.ForeignKeyViolation:	
+					return Post{}, BadRequest, errors.New(`unknown user`)
+			}
+		} 
 		
-		return post, err
+		return post, InternalServerError, err
 	}
 	
-	return post, nil 
+	return post, OK, nil 
 }
