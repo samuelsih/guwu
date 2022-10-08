@@ -14,10 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	ErrUserNotFound = errors.New("user not found")
-)
-
 type User struct {
 	ID        string    `db:"id" json:"id"`
 	Username  string    `db:"username" json:"username"`
@@ -72,7 +68,7 @@ func (u *UserDeps) GetUserByEmail(email string) (User, statusCode, error) {
 
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.GetUserByEmail")
-		return user, BadRequest, ErrUserNotFound
+		return user, BadRequest, errors.New("user not found")
 	}
 	
 	return user, OK, nil
@@ -86,7 +82,7 @@ func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]U
 
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.FindUserByUsername")
-		return nil, InternalServerError, ErrUserNotFound
+		return nil, InternalServerError, errors.New("user not found")
 	}
 
 	return users, OK, nil
