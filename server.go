@@ -12,6 +12,7 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/rs/zerolog/log"
 	"github.com/samuelsih/guwu/config"
+	"github.com/samuelsih/guwu/mail"
 	"github.com/samuelsih/guwu/model"
 	"github.com/samuelsih/guwu/service"
 	"golang.org/x/sync/errgroup"
@@ -21,6 +22,7 @@ type Server struct {
 	Router    *chi.Mux
 	DB        *sqlx.DB
 	SessionDB *redis.Client
+	Mailer *mail.Mailer
 }
 
 func NewServer(production bool) *Server {
@@ -29,6 +31,7 @@ func NewServer(production bool) *Server {
 			Router:    chi.NewRouter(),
 			DB:        config.ConnectPostgres(os.Getenv("COCKROACH_DSN")),
 			SessionDB: config.NewRedis(os.Getenv("REDIS_URL")),
+			Mailer: mail.NewMailer(os.Getenv("MAILER_HOST"), os.Getenv("MAILER_ADDR"), os.Getenv("MAILER_EMAIL"), os.Getenv("MAILER_PASSWORD")),
 		}
 
 		config.MigrateAll(s.DB)
@@ -40,9 +43,14 @@ func NewServer(production bool) *Server {
 		Router:    chi.NewRouter(),
 		DB:        config.ConnectPostgres(""),
 		SessionDB: config.NewRedis(""),
+		Mailer: mail.NewMailer(os.Getenv("MAILER_HOST"), os.Getenv("MAILER_ADDR"), os.Getenv("MAILER_EMAIL"), os.Getenv("MAILER_PASSWORD")),
 	}
 
-	config.MigrateAll(s.DB)
+	if err := config.MigrateAll(s.DB); err != nil {
+		log.Fatal().Msg("Cant migrate: " + err.Error())
+	}
+
+	go s.Mailer.Listen()
 
 	return s
 }
@@ -91,6 +99,8 @@ func (s *Server) Run(stop <-chan os.Signal) {
 
 	eg := &errgroup.Group{}
 
+	s.Mailer.Close()
+
 	eg.Go(func() error {
 		err := s.DB.Close()
 
@@ -115,12 +125,12 @@ func (s *Server) Run(stop <-chan os.Signal) {
 		return nil
 	})
 
-	if err := eg.Wait(); err != nil {
-		log.Fatal().Msg("Error on closing database" + err.Error())
-	}
-
 	if err := srv.Shutdown(context.Background()); err != nil {
 		log.Fatal().Msg("Error shutting down: " + err.Error())
+	}
+
+	if err := eg.Wait(); err != nil {
+		log.Fatal().Msg("Error on closing database" + err.Error())
 	}
 
 	log.Info().Msg("Shutdown complete")

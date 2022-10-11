@@ -3,6 +3,7 @@ package mail
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/smtp"
 	"sync/atomic"
 	"time"
@@ -44,6 +45,8 @@ func NewMailer(host, address, email, password string) *Mailer {
 		doneChan: make(chan struct{}), 
 		errChan: make(chan error),
 	}
+
+	log.Info().Msg(fmt.Sprintf("Creating new mail on host : %s | email : %s | password : %s", host, email, password))
 	return mailer
 }
 
@@ -86,10 +89,12 @@ func (m *Mailer) send(ctx context.Context, msg *mail.Email) {
 }
 
 
-func (m *Mailer) listen() {
+func (m *Mailer) Listen() {
 	for {
 		select{
 		case <- m.doneChan:
+			close(m.errChan)
+			close(m.doneChan)
 			return
 
 		case err := <-m.errChan:
@@ -98,4 +103,9 @@ func (m *Mailer) listen() {
 			}
 		}
 	}
+}
+
+func (m *Mailer) Close() { 
+	m.doneChan <- struct{}{} 
+	m.pool.Close() 
 }

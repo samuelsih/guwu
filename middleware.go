@@ -56,6 +56,7 @@ func (Server) Logger() func(http.Handler) http.Handler {
 						"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0,
 						"bytes_in":   r.Header.Get("Content-Length"),
 						"bytes_out":  wr.BytesWritten(),
+						"request_id": middleware.GetReqID(r.Context()),
 					}).
 					Msg("incoming_request")
 			}()
