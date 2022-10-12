@@ -43,7 +43,7 @@ func NewServer(production bool) *Server {
 		Router:    chi.NewRouter(),
 		DB:        config.ConnectPostgres(""),
 		SessionDB: config.NewRedis(""),
-		Mailer: mail.NewMailer(os.Getenv("MAILER_HOST"), os.Getenv("MAILER_ADDR"), os.Getenv("MAILER_EMAIL"), os.Getenv("MAILER_PASSWORD")),
+		Mailer: mail.NewMailer("localhost:1025", "localhost", "info@gmail.com", ""),
 	}
 
 	if err := config.MigrateAll(s.DB); err != nil {
@@ -61,6 +61,8 @@ func (s *Server) load() {
 	guest := service.Guest{DB: s.DB, SessionDB: s.SessionDB}
 	posts := service.Post{DB: s.DB}
 
+	verification := service.Verification{SendEmail: s.Mailer.Send}
+
 	s.Router.Post("/register", loginOrRegister(guest.Register))
 	s.Router.Post("/login", loginOrRegister(guest.Login))
 	s.Router.Post("/logout", logout(guest.Logout))
@@ -68,6 +70,10 @@ func (s *Server) load() {
 	s.Router.Get("/timeline", get(posts.Timeline))
 	s.Router.Post("/post", post(session, posts.Insert))
 	s.Router.Put("/post/{id}", put(session, "id", posts.Edit))
+
+	s.Router.Get("/send-mail/{email}", getWithParam(verification.Send, "email"))
+
+	s.Router.Mount("/debug", middleware.Profiler())
 }
 
 func (s *Server) Run(stop <-chan os.Signal) {
