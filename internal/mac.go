@@ -16,6 +16,12 @@ var (
 	iv = make([]byte, 16)
 )
 
+func init() {
+	if passphrase == "" {
+		passphrase = "SODNOLSOWXGGYJNZKEMCYBQHUWIAMWTI"
+	}
+}
+
 type Payload struct {
 	Email string `json:"email"`
 	Duration time.Time `json:"duration"`
