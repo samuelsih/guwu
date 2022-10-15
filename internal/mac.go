@@ -1,56 +1,44 @@
 package internal
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"os"
 	"time"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 var (
-	secretKey = []byte(os.Getenv("MAC_KEY"))
-	iv =  make([]byte, 16)
+	passphrase = os.Getenv("MAC_KEY")
+	iv = make([]byte, 16)
 )
-
-const blockSize = 32
 
 type Payload struct {
 	Email string `json:"email"`
 	Duration time.Time `json:"duration"`
 }
 
-
 func GenerateMAC(email string) (string, error) {
-	phrase, err := json.Marshal(Payload{Email: email, Duration: time.Now().Local().Add(time.Minute * 10)})
+	plainText, err := json.Marshal(Payload{Email: email, Duration: time.Now().Local().Add(time.Minute * 10)})
 	if err != nil {
 		return "", err
 	}
 
-	h := sha256.New()
-	h.Write(secretKey)
-	key := h.Sum(nil)
-
-	cipherText, err := encrypt(key, phrase)
+	cipherText, err := encrypt(plainText)
 	if err != nil {
 		return "", err
 	}
 
-	cipherString := base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(cipherText)
+	cipherString := base64.StdEncoding.EncodeToString(cipherText)
 	return cipherString, nil
 }
 
 
 func ValidateMAC(mac string) (Payload, error) {
-	h := sha256.New()
-	h.Write([]byte(secretKey))
-	key := h.Sum(nil)
-
-	plainText, err := decrypt(key, []byte(mac))
+	plainText, err := decrypt(mac)
 	if err != nil {
 		return Payload{}, err
 	}
@@ -63,62 +51,38 @@ func ValidateMAC(mac string) (Payload, error) {
 	return payload, nil
 }
 
-func encrypt(plainText, key []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+func encrypt(plainText []byte) ([]byte, error) {
+	block, err := aes.NewCipher([]byte(passphrase))
 	if err != nil {
 		return nil, err
 	}
 
-	mode := cipher.NewCBCEncrypter(block, iv)
-	plainText = pkcs7pad256(plainText)
+	mode := cipher.NewCFBEncrypter(block, iv)
 	cipherText := make([]byte, len(plainText))
 
-	mode.CryptBlocks(cipherText, plainText)
+	mode.XORKeyStream(cipherText, plainText)
 
 	return cipherText, nil
 }
 
 
-func decrypt(key, cipherText []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+func decrypt(text string) ([]byte, error) {
+	block, err := aes.NewCipher([]byte(passphrase))
 	if err != nil {
 		return nil, err
 	}
 
-	mode := cipher.NewCBCDecrypter(block, iv)
-	plainText := make([]byte, len(cipherText))
+	cipherText, err := base64.StdEncoding.DecodeString(text)
+	if err != nil {
+		return nil, err
+	} 
+	
+	mode := cipher.NewCFBDecrypter(block, iv)
+	
+	plainText := make([]byte, len(cipherText)) 
+	
+	mode.XORKeyStream(plainText, cipherText)
 
-	mode.CryptBlocks(plainText, cipherText)
-
-	return pkcs7strip256(plainText)
+	return plainText, nil
 }
 
-// add paddding if data length is < 32 bytes
-func pkcs7pad256(data []byte) []byte {
-	dataLen := len(data)
-	paddingLen := blockSize % dataLen
-	padding := bytes.Repeat([]byte{byte(paddingLen)}, paddingLen)
-	return append(data, padding...)
-}
-
-// check padding 
-func pkcs7strip256(data []byte) ([]byte, error) {
-	dataLen := len(data)
-
-	if dataLen == 0 {
-		return nil, errors.New("data is empty")
-	}
-
-	if dataLen % blockSize != 0 {
-		return nil, errors.New("data is not block-aligned with blocksize")
-	}
-
-	paddingLen := int(data[dataLen - 1])
-	ref := bytes.Repeat([]byte{byte(paddingLen)}, paddingLen)
-
-	if paddingLen > blockSize || paddingLen == 0 || !bytes.HasSuffix(data, ref) {
-		return nil, errors.New("invalid padding")
-	}
-
-	return data[:dataLen - paddingLen], nil
-}
