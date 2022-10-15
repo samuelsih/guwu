@@ -11,6 +11,7 @@ import (
 	"path"
 
 	"github.com/samuelsih/guwu/mail"
+	"github.com/samuelsih/guwu/internal"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,6 +25,22 @@ type VerifSendOut struct {
 
 func (v *Verification) Send(ctx context.Context, email string) VerifSendOut {
 	var out VerifSendOut
+
+	if err := validateEmail(email); err != nil {
+		out.SetError(http.StatusBadRequest, err.Error())
+		return out
+	}
+
+	ok, err := internal.IsSpamEmail(ctx, email)
+	if err != nil {
+		out.SetError(http.StatusInternalServerError, err.Error())
+		return out
+	}
+
+	if !ok {
+		out.SetError(http.StatusBadRequest, "this email is considered spam.")
+		return out
+	}
 
 	htmlContent, err := buildHTMLMessage(email)
 	if err != nil {
