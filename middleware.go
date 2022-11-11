@@ -5,13 +5,11 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/bytedance/sonic/encoder"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog/log"
-	"github.com/samuelsih/guwu/service"
 )
 
-func (Server) JSONResponse() func(http.Handler) http.Handler {
+func JSONResponse() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		f := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -23,7 +21,7 @@ func (Server) JSONResponse() func(http.Handler) http.Handler {
 	}
 }
 
-func (Server) Logger() func(http.Handler) http.Handler {
+func Logger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			wr := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
@@ -65,21 +63,6 @@ func (Server) Logger() func(http.Handler) http.Handler {
 		}
 
 		return http.HandlerFunc(fn)
-	}
-}
-
-func (Server) CookieExists(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := r.Cookie("app_session")
-		if err != nil {
-			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
-				StatusCode: http.StatusForbidden,
-				Msg:        http.StatusText(http.StatusForbidden),
-			})
-			return
-		}
-
-		h(w, r)
 	}
 }
 

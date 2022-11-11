@@ -10,6 +10,7 @@ type CommonRequest struct {
 	Token string `json:"-"`
 	UserSession model.Session `json:"-"`
 }
+
 type CommonResponse struct {
 	StatusCode int    `json:"code,omitempty"`
 	Msg        string `json:"message,omitempty"`

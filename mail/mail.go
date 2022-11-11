@@ -1,26 +1,16 @@
 package mail
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"net/smtp"
-	"sync/atomic"
-	"time"
-
 	"github.com/rs/zerolog/log"
-
-	mail "github.com/jordan-wright/email"
+	"gopkg.in/gomail.v2"
 )
 
 type Mailer struct {
-	From string
+	dialer *gomail.Dialer
+	mailChan chan *gomail.Message
+	sendCloser gomail.SendCloser
 
-	pool *mail.Pool
-	maxEmailPerDay int32
-	timeout time.Duration
-
-	errChan chan error
+	limiter chan struct{}
 	doneChan chan struct{}
 }
 
@@ -31,81 +21,52 @@ type Message struct {
 	HTMLContent string
 }
 
-func NewMailer(host, address, email, password string) *Mailer {
-	p, err := mail.NewPool(host, 4, smtp.PlainAuth("", email, password, address))
-	if err != nil {
-		log.Fatal().Msg("Error on creating mailer: " + err.Error())
-	}
-
+func NewMailer(host string, port int, user, password string) *Mailer {
+	dialer := gomail.NewDialer(host, port, user, password)
 	mailer := &Mailer{
-		From: email,
-		pool: p, 
-		maxEmailPerDay: 0, 
-		timeout: time.Second * 10,
-		doneChan: make(chan struct{}), 
-		errChan: make(chan error),
+		dialer: dialer,
+		mailChan: make(chan *gomail.Message, 10),
+		doneChan: make(chan struct{}),
+		limiter: make(chan struct{}, 10),
 	}
-
-	log.Info().Msg(fmt.Sprintf("Creating new mail on host : %s | email : %s | password : %s", host, email, password))
 	return mailer
 }
 
-func (m *Mailer) Send(ctx context.Context, msg Message) {
-	e := mail.NewEmail()
+func (m *Mailer) Send(msg Message) {
+	message := gomail.NewMessage()
+	message.SetHeader("From", "guwu@info.com")
+	message.SetHeader("To", msg.To)
+	message.SetHeader("subject", msg.Subject)
+	message.SetBody("text/html", msg.HTMLContent)
 
-	e.From = m.From
-	e.To = []string{msg.To}
-	e.Subject = msg.Subject
-	e.HTML = []byte(msg.HTMLContent)
-
-	go m.send(ctx, e)
+	m.mailChan <- message
 }
-
-func (m *Mailer) send(ctx context.Context, msg *mail.Email) {
-	select {
-	case <-ctx.Done():
-		return
-
-	default:
-		if m.maxEmailPerDay == 1500 {
-			m.errChan <- errors.New("cant send email right now, limit reached")
-			return
-		}
-
-		if msg == nil {
-			m.errChan <- errors.New("email that want to send is nil")
-			return
-		}
-
-		err := m.pool.Send(msg, m.timeout)
-		if err != nil {
-			m.errChan <- err
-			return
-		}
-
-		atomic.AddInt32(&m.maxEmailPerDay, 1)
-		return
-	}
-}
-
 
 func (m *Mailer) Listen() {
 	for {
 		select{
 		case <- m.doneChan:
-			close(m.errChan)
+			close(m.mailChan)
 			close(m.doneChan)
+			close(m.limiter)
 			return
 
-		case err := <-m.errChan:
-			if err != nil {
-				log.Error().Msg("Error on mailer: " + err.Error())
-			}
+		case msg := <- m.mailChan:
+			m.limiter <- struct{}{} // will blocking if full
+
+			go func() {
+				defer func(){
+					<- m.limiter
+				}()
+
+				if err := gomail.Send(m.sendCloser, msg); err != nil {
+					log.Error().Msg("Error on mailer: " + err.Error())
+				}
+			}()
 		}
 	}
 }
 
 func (m *Mailer) Close() { 
 	m.doneChan <- struct{}{} 
-	m.pool.Close() 
 }

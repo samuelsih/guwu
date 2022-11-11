@@ -6,8 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog/log"
@@ -47,12 +45,6 @@ func (u *UserDeps) Insert(ctx context.Context, username, email, password string)
 
 	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
-		if errSQL, ok := err.(*pgconn.PgError); ok {
-			switch errSQL.Code {
-				case pgerrcode.UniqueViolation:	
-					return User{}, BadRequest, errors.New(`email already exists`)
-			}
-		}
 		log.Debug().Stack().Err(err).Str("place", "user.Insert.ExecContext")
 		return User{}, InternalServerError, err
 	}

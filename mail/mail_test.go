@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"testing"
-	"time"
 
 	"log"
 
@@ -21,10 +21,7 @@ func TestMain(m *testing.M) {
 	}
 }
 
-func TestMailSuccess(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
-	defer cancel()
-
+func TestMail(t *testing.T) {
 	defer serverMailTest.Close()
 
 	msg := Message{
@@ -34,21 +31,10 @@ func TestMailSuccess(t *testing.T) {
 		HTMLContent: "<h1>HAI</h1",
 	}
 
-	serverMailTest.Send(ctx, msg)
-
-	select {
-		case <-ctx.Done():
-			t.Error("context done")
-
-		case err := <- serverMailTest.errChan:
-			if err != nil { t.Error(err) }
-	}
+	serverMailTest.Send(msg)
 }
 
 func TestMailConcurrent(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
-	defer cancel()
-
 	defer serverMailTest.Close()
 
 	msg := Message{
@@ -58,41 +44,11 @@ func TestMailConcurrent(t *testing.T) {
 		HTMLContent: "<h1>HAI</h1",
 	}
 
-	for i := 10; i < 10; i++ {
-		go func() { serverMailTest.Send(ctx, msg) }()
+	for i := 0; i < 10; i++ {
+		serverMailTest.Send(msg)
 	}
 
-	select {
-	case <-ctx.Done():
-		t.Error("context done")
-
-	case err := <- serverMailTest.errChan:
-		if err != nil { t.Error(err) }
-	}
 }
-
-func TestMailConcurrentFail(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1 * time.Second)
-	defer cancel()
-
-	defer serverMailTest.Close()
-
-	msg := Message{
-		To: "something@gmail.com",
-		Subject: "HAI",
-		PlainContent: "HAI",
-		HTMLContent: "<h1>HAI</h1",
-	}
-
-	for i := 10; i < 10; i++ {
-		go func() { serverMailTest.Send(ctx, msg) }()
-	}
-	
-	if ctx.Err() == nil {
-		t.Error(`ctx should exit the send`)
-	}
-}
-
 
 func setupMailServer() error {
 	ctx := context.Background()
@@ -125,8 +81,10 @@ func setupMailServer() error {
 		return err
 	}
 
+	port, _ := strconv.Atoi(mappedPort.Port())
+
 	host := fmt.Sprintf("mailhog://%s%s", hostIP, mappedPort.Port())
-	serverMailTest = NewMailer(host, "localhost", "info@gmail.com", "")
+	serverMailTest = NewMailer(host, port, "info@gmail.com", "")
 
 	if serverMailTest == nil {
 		return errors.New(`server is nil`)
@@ -134,3 +92,4 @@ func setupMailServer() error {
 
 	return nil
 }
+

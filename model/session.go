@@ -9,8 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bytedance/sonic"
-	"github.com/bytedance/sonic/decoder"
+	"encoding/json"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -33,7 +32,7 @@ func (u *SessionDeps) Save(ctx context.Context, data Session) (string, error) {
 	mx.RLock()
 	defer mx.RUnlock()
 	
-	buf, err := sonic.Marshal(&data)
+	buf, err := json.Marshal(&data)
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +59,7 @@ func (u *SessionDeps) Get(ctx context.Context, key string) (Session, error) {
 
 	r := bytes.NewReader([]byte(userFromDB))
 
-	err = decoder.NewStreamDecoder(r).Decode(&userSession)
+	err = json.NewDecoder(r).Decode(&userSession)
 	if err != nil {
 		return userSession, err
 	}

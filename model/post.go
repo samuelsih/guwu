@@ -6,8 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog/log"
@@ -35,12 +33,6 @@ func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post
 
 	_, err := p.DB.ExecContext(ctx, query, post.ID, post.Description, userID)
 	if err != nil {
-		if errSQL, ok := err.(*pgconn.PgError); ok {
-			switch errSQL.Code {
-				case pgerrcode.ForeignKeyViolation:	
-					return Post{}, BadRequest, errors.New(`unknown user`)
-			}
-		}
 		log.Debug().Stack().Err(err).Str("place", "posts.InsertUser.ExecContext")
 		return Post{}, BadRequest, err
 	}
@@ -90,13 +82,6 @@ func (p *PostDeps) Update(ctx context.Context, description string, postID, userI
 		if err == sql.ErrNoRows {
 			return post, BadRequest, errors.New(`unknown user`)
 		}
-
-		if errSQL, ok := err.(*pgconn.PgError); ok {
-			switch errSQL.Code {
-				case pgerrcode.ForeignKeyViolation:	
-					return Post{}, BadRequest, errors.New(`unknown user`)
-			}
-		} 
 		
 		return post, InternalServerError, err
 	}
