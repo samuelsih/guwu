@@ -12,8 +12,8 @@ var GithubConfig = &oauth2.Config{
 	ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
 	ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
 	Endpoint:     github.Endpoint,
-	Scopes:       []string{"read:user", "user:gmail"},
-	RedirectURL:  "http://localhost:3000/api/v1/oauth2/github/callback",
+	Scopes:       []string{"user:email"},
+	RedirectURL:  "http://localhost:8080/api/auth/github/callback",
 }
 
 var GoogleConfig = &oauth2.Config{

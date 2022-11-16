@@ -32,6 +32,11 @@ func (o *CommonResponse) SetCreated() {
 	o.Msg = "Created"
 }
 
+func (o *CommonResponse) Set(statusCode int, msg string) {
+	o.StatusCode = statusCode
+	o.Msg = msg
+}
+
 type CommonOutput interface {
 	CommonRes() *CommonResponse
 }

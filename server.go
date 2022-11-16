@@ -12,8 +12,6 @@ import (
 	"github.com/samuelsih/guwu/mail"
 	"github.com/samuelsih/guwu/model"
 	"github.com/samuelsih/guwu/routes"
-	"github.com/samuelsih/guwu/service"
-	"golang.org/x/net/context"
 )
 
 func Run() {
@@ -22,7 +20,7 @@ func Run() {
 		port = "8080"
 	}
 	
-	email := os.Getenv("EMAIL")
+	email := os.Getenv("MAIL_USER")
 	if email == "" {
 		panic("email is required")
 	}
@@ -51,13 +49,14 @@ func Run() {
 	routes.InitDependency(session, "", "")
 
 	r := chi.NewRouter()
-	routes.Get("/", func(ctx context.Context) service.CommonOutput {
-		return service.CommonResponse{
-			StatusCode: 200,
-			Msg: "OK",
-		}
+	r.Get("/", func(w http.ResponseWriter, r *http.Request){
+		w.WriteHeader(200)
+		w.Write([]byte("OK"))
 	})
+	
+	authDeps := routes.AuthDeps{}
 
+	r.Mount("/api", routes.AuthRoutes(authDeps))
 
 	server := &http.Server{
 		Addr: ":" + port,
