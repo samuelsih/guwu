@@ -6,9 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
@@ -27,11 +26,11 @@ type UserDeps struct {
 	DB *sqlx.DB
 }
 
-func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (User, statusCode, error) {
+func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.Insert.HashPassword")
-		return User{}, InternalServerError, err
+		return User{}, err
 	}
 
 	user := User{
@@ -47,17 +46,18 @@ func (u *UserDeps) Insert(ctx context.Context, username, email, password string)
 
 	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
 	if err != nil {
-		if errSQL, ok := err.(*pgconn.PgError); ok {
-			switch errSQL.Code {
-				case pgerrcode.UniqueViolation:	
-					return User{}, BadRequest, errors.New(`email already exists`)
+		if sqlerr, ok := err.(*pq.Error); ok {
+			switch sqlerr.Code {
+			case "23505":
+				return User{}, errors.New("email already exists")
 			}
 		}
+
 		log.Debug().Stack().Err(err).Str("place", "user.Insert.ExecContext")
-		return User{}, InternalServerError, err
+		return User{}, err
 	}
 
-	return user, Created, nil
+	return user, nil
 }
 
 func (u *UserDeps) GetUserByEmail(email string) (User, statusCode, error) {
@@ -74,7 +74,7 @@ func (u *UserDeps) GetUserByEmail(email string) (User, statusCode, error) {
 	return user, OK, nil
 }
 
-func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]User, statusCode, error) {
+func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]User, error) {
 	query := `SELECT username FROM users WHERE username ILIKE $1`
 
 	var users []User
@@ -82,10 +82,10 @@ func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]U
 
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.FindUserByUsername")
-		return nil, InternalServerError, errors.New("user not found")
+		return nil, errors.New("user not found")
 	}
 
-	return users, OK, nil
+	return users, nil
 }
 
 func (u *User) PasswordMatches(password string) bool {

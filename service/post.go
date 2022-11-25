@@ -24,10 +24,10 @@ func (p *Post) Timeline(ctx context.Context) PostTimelineOut {
 
 	post := model.PostDeps{DB: p.DB}
 
-	result, statusCode, err := post.GetTimeline(ctx)
+	result, err := post.GetTimeline(ctx)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline")
-		out.SetError(statusCode, err.Error())
+		out.SetError(400, err.Error())
 		return out
 	}
 
@@ -61,10 +61,10 @@ func (p *Post) Insert(ctx context.Context, in *PostInsertIn) PostInsertOut {
 
 	post := model.PostDeps{DB: p.DB}
 
-	result, statusCode, err := post.Insert(ctx, in.Description, in.UserSession.ID)
+	result, err := post.Insert(ctx, in.Description, in.UserSession.ID)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "posts.Insert")
-		out.SetError(statusCode, err.Error())
+		out.SetError(400, err.Error())
 		return out
 	}
 

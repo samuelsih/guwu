@@ -6,9 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog/log"
 )
@@ -25,7 +24,7 @@ type PostDeps struct {
 	DB *sqlx.DB
 }
 
-func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post, statusCode, error) {
+func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post, error) {
 	query := `INSERT INTO posts(id, description, user_id) VALUES ($1, $2, $3)`
 
 	post := Post{
@@ -35,20 +34,21 @@ func (p *PostDeps) Insert(ctx context.Context, description, userID string) (Post
 
 	_, err := p.DB.ExecContext(ctx, query, post.ID, post.Description, userID)
 	if err != nil {
-		if errSQL, ok := err.(*pgconn.PgError); ok {
-			switch errSQL.Code {
-				case pgerrcode.ForeignKeyViolation:	
-					return Post{}, BadRequest, errors.New(`unknown user`)
+		if sqlerr, ok := err.(*pq.Error); ok {
+			switch sqlerr.Code {
+			case "23503":
+				return Post{}, errors.New("unknown user")
 			}
 		}
+
 		log.Debug().Stack().Err(err).Str("place", "posts.InsertUser.ExecContext")
-		return Post{}, BadRequest, err
+		return Post{}, err
 	}
 
-	return post, OK, nil
+	return post, nil
 }
 
-func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, int, error) {
+func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, error) {
 	query := `SELECT p.id, p.description, p.created_at, p.updated_at FROM posts AS p JOIN users AS u on p.user_id = u.id`
 
 	var posts []Post
@@ -56,7 +56,7 @@ func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, int, error) {
 
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline.QueryxContext")
-		return nil, InternalServerError, err
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -67,17 +67,17 @@ func (p *PostDeps) GetTimeline(ctx context.Context) ([]Post, int, error) {
 
 		if err != nil {
 			log.Debug().Stack().Err(err).Str("place", "posts.GetTimeline.StructScan")
-			return nil, InternalServerError, err
+			return nil, err
 		}
 
 		posts = append(posts, post)
 	}
 
 	if len(posts) == 0 {
-		return posts, NoContent, nil
+		return posts, nil
 	}
 
-	return posts, OK, nil
+	return posts, nil
 }
 
 func (p *PostDeps) Update(ctx context.Context, description string, postID, userID string) (Post, statusCode, error) {
@@ -90,13 +90,6 @@ func (p *PostDeps) Update(ctx context.Context, description string, postID, userI
 		if err == sql.ErrNoRows {
 			return post, BadRequest, errors.New(`unknown user`)
 		}
-
-		if errSQL, ok := err.(*pgconn.PgError); ok {
-			switch errSQL.Code {
-				case pgerrcode.ForeignKeyViolation:	
-					return Post{}, BadRequest, errors.New(`unknown user`)
-			}
-		} 
 		
 		return post, InternalServerError, err
 	}

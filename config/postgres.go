@@ -5,7 +5,7 @@ import (
 
 	_ "embed"
 
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/lib/pq"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -15,15 +15,11 @@ var sqlUp string
 
 func ConnectPostgres(dsn string) *sqlx.DB {	
 	if dsn == "" {
-		dsn = "host=localhost port=5432 user=postgres password=postgres dbname=testdb sslmode=disable timezone=UTC connect_timeout=5"
+		dsn = "host=localhost port=5432 user=postgres password=postgres dbname=testdb sslmode=disable timezone=UTC connect_timeout=5 sslmode=disable"
 	}
 
-	db, err := sqlx.Open("pgx", dsn)
+	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
-	}
-
-	if err := db.Ping(); err != nil {
 		log.Fatal().Msg(err.Error())
 	}
 

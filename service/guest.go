@@ -95,10 +95,10 @@ func (u *Guest) Register(ctx context.Context, in *GuestRegisterIn) GuestRegister
 		return out
 	}
 
-	result, statusCode, err := user.Insert(ctx, in.Username, in.Email, in.Password)
+	result, err := user.Insert(ctx, in.Username, in.Email, in.Password)
 	if err != nil {
 		log.Debug().Stack().Err(err).Str("place", "user.Insert")
-		out.SetError(statusCode, err.Error())
+		out.SetError(400, err.Error())
 		return out
 	}
 

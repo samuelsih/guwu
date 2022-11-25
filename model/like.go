@@ -2,10 +2,7 @@ package model
 
 import (
 	"context"
-	"errors"
 
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog/log"
@@ -21,7 +18,7 @@ type LikeDeps struct {
 	DB *sqlx.DB
 }
 
-func(l *LikeDeps) Insert(ctx context.Context, postID, userID string) (Like, statusCode, error) {
+func(l *LikeDeps) Insert(ctx context.Context, postID, userID string) (Like, error) {
 	query := `INSERT INTO likes(id, post_id, user_id) VALUES ($1, $2, $3)`
 
 	like := Like{
@@ -32,15 +29,9 @@ func(l *LikeDeps) Insert(ctx context.Context, postID, userID string) (Like, stat
 
 	_, err := l.DB.ExecContext(ctx, query, like.ID, like.PostID, like.UserID)
 	if err != nil {
-		if errSQL, ok := err.(*pgconn.PgError); ok {
-			switch errSQL.Code {
-				case pgerrcode.ForeignKeyViolation:	
-					return Like{}, BadRequest, errors.New(`unknown user/posts`)
-			}
-		}
 		log.Debug().Stack().Err(err).Str("place", "likes.Insert.ExecContext")
-		return Like{}, BadRequest, err
+		return Like{}, err
 	}
 
-	return like, 200, nil
+	return like, nil
 }

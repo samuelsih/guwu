@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	_ "github.com/lib/pq"
 	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/samuelsih/guwu/config"
@@ -77,7 +78,7 @@ func setupDB() error {
         return err
     }
 
-	uri := fmt.Sprintf("postgres://postgres:postgres@%v:%v/testdb", hostIP, mappedPort.Port())
+	uri := fmt.Sprintf("postgres://postgres:postgres@%v:%v/testdb?sslmode=disable", hostIP, mappedPort.Port())
 
 	testDB = config.ConnectPostgres(uri)
 	if testDB == nil {

@@ -1,11 +1,11 @@
 package guwu
 
 import (
+	"encoding/json"
 	"net/http"
 	"runtime/debug"
 	"time"
 
-	"github.com/bytedance/sonic/encoder"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog/log"
 	"github.com/samuelsih/guwu/service"
@@ -72,7 +72,7 @@ func (Server) CookieExists(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := r.Cookie("app_session")
 		if err != nil {
-			encoder.NewStreamEncoder(w).Encode(service.CommonResponse{
+			json.NewEncoder(w).Encode(service.CommonResponse{
 				StatusCode: http.StatusForbidden,
 				Msg:        http.StatusText(http.StatusForbidden),
 			})
