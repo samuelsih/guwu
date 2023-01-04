@@ -111,4 +111,3 @@ func generateRandomStr(n int) string {
 
 	return string(b)
 }
-

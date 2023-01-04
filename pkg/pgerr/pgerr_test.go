@@ -8,7 +8,7 @@ import (
 
 func Test_UniqueColumn(t *testing.T) {
 	pqErr := pq.Error{
-		Code: "23505",
+		Code:       "23505",
 		Constraint: "users_email_key",
 	}
 

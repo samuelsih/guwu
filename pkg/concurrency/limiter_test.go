@@ -9,7 +9,7 @@ import (
 
 func TestSimpleLimiter(t *testing.T) {
 	var counter atomic.Int32
-	
+
 	var limiter = New(5)
 
 	for i := 0; i < 5; i++ {
@@ -28,7 +28,7 @@ func TestSimpleLimiter(t *testing.T) {
 func TestLimiterCtx(t *testing.T) {
 	var limiter = New(5)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 50 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
 	var counter atomic.Int32
@@ -57,4 +57,4 @@ func TestLimiterPanic(t *testing.T) {
 	if limiter.PanicErr != nil {
 		t.Fatalf("expected panic: foo, got %v", limiter.PanicErr)
 	}
-}	
+}

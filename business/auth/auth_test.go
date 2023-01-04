@@ -38,23 +38,22 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-
 func TestRegister(t *testing.T) {
-	deps := Deps {
+	deps := Deps{
 		DB: testDB,
 	}
 
 	t.Parallel()
 
 	t.Run("RegisterEmptyEmail", func(t *testing.T) {
-		input := RegisterInput {
+		input := RegisterInput{
 			Username: "SevenSins",
 			Password: "Seven123!",
 		}
 
-		expected := RegisterOutput {CommonResponse: business.CommonResponse{
+		expected := RegisterOutput{CommonResponse: business.CommonResponse{
 			StatusCode: 400,
-			Msg: errEmailRequired.Error(),
+			Msg:        errEmailRequired.Error(),
 		}}
 
 		got := deps.Register(context.Background(), input)
@@ -65,14 +64,14 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("RegisterEmptyUsername", func(t *testing.T) {
-		input := RegisterInput {
-			Email: "a@gmail.com",
+		input := RegisterInput{
+			Email:    "a@gmail.com",
 			Password: "123123123",
 		}
 
-		expected := RegisterOutput {CommonResponse: business.CommonResponse{
+		expected := RegisterOutput{CommonResponse: business.CommonResponse{
 			StatusCode: 400,
-			Msg: errUsernameRequired.Error(),
+			Msg:        errUsernameRequired.Error(),
 		}}
 
 		got := deps.Register(context.Background(), input)
@@ -83,14 +82,14 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("RegisterEmptyPassword", func(t *testing.T) {
-		input := RegisterInput {
-			Email: "a@gmail.com",
+		input := RegisterInput{
+			Email:    "a@gmail.com",
 			Username: "123123123",
 		}
 
-		expected := RegisterOutput {CommonResponse: business.CommonResponse{
+		expected := RegisterOutput{CommonResponse: business.CommonResponse{
 			StatusCode: 400,
-			Msg: errPasswordRequired.Error(),
+			Msg:        errPasswordRequired.Error(),
 		}}
 
 		got := deps.Register(context.Background(), input)
@@ -100,10 +99,9 @@ func TestRegister(t *testing.T) {
 		}
 	})
 
-
 	t.Run("RegisterMultipleAcc", func(t *testing.T) {
 		in := deps.Register(context.Background(), RegisterInput{
-			Email: "testing@gmail.com",
+			Email:    "testing@gmail.com",
 			Username: "heavenlybrush",
 			Password: "Heaven123!",
 		})
@@ -112,13 +110,13 @@ func TestRegister(t *testing.T) {
 			t.Fatalf("TestRegister.RegisterMultipleAcc - expected 200, got %v", in)
 		}
 
-		input := RegisterInput {
-			Email: "testing@gmail.com",
+		input := RegisterInput{
+			Email:    "testing@gmail.com",
 			Username: "heavenlybrush",
 			Password: "Heaven123!",
 		}
 
-		expected := RegisterOutput {CommonResponse: business.CommonResponse{
+		expected := RegisterOutput{CommonResponse: business.CommonResponse{
 			StatusCode: 400,
 		}}
 
@@ -131,21 +129,21 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLogin(t *testing.T) {
-	deps := Deps {
+	deps := Deps{
 		DB: testDB,
 	}
 
 	t.Parallel()
 
 	t.Run("EmptyEmail", func(t *testing.T) {
-		input := LoginInput {
+		input := LoginInput{
 			Password: "123123123",
 		}
 
-		expected := LoginOutput {
+		expected := LoginOutput{
 			CommonResponse: business.CommonResponse{
 				StatusCode: 400,
-				Msg: errEmailRequired.Error(),
+				Msg:        errEmailRequired.Error(),
 			},
 		}
 
@@ -157,14 +155,14 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("EmptyPassword", func(t *testing.T) {
-		input := LoginInput {
+		input := LoginInput{
 			Email: "mail@gmail.com",
 		}
 
-		expected := LoginOutput {
+		expected := LoginOutput{
 			CommonResponse: business.CommonResponse{
 				StatusCode: 400,
-				Msg: errPasswordRequired.Error(),
+				Msg:        errPasswordRequired.Error(),
 			},
 		}
 
@@ -176,15 +174,15 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("UnknownUser", func(t *testing.T) {
-		input := LoginInput {
-			Email: "mail@gmail.com",
+		input := LoginInput{
+			Email:    "mail@gmail.com",
 			Password: "Mail123123!",
 		}
 
-		expected := LoginOutput {
+		expected := LoginOutput{
 			CommonResponse: business.CommonResponse{
 				StatusCode: 400,
-				Msg: "unknown user",
+				Msg:        "unknown user",
 			},
 		}
 
@@ -196,16 +194,16 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		successDeps := Deps {
+		successDeps := Deps{
 			DB: testDB,
 			CreateSession: func(ctx context.Context, in any) (string, error) {
 				return "123", nil
 			},
 		}
 
-		in := successDeps.Register(context.Background(), RegisterInput {
+		in := successDeps.Register(context.Background(), RegisterInput{
 			Username: "gustalagusta",
-			Email: "gustalagusta@gmail.com",
+			Email:    "gustalagusta@gmail.com",
 			Password: "Testing123!",
 		})
 
@@ -213,16 +211,16 @@ func TestLogin(t *testing.T) {
 			t.Fatalf("TestLogin.Success - in should be 200, got %v", in)
 		}
 
-		input := LoginInput {
-			Email: "gustalagusta@gmail.com",
+		input := LoginInput{
+			Email:    "gustalagusta@gmail.com",
 			Password: "Testing123!",
 		}
 
-		expected := LoginOutput {
+		expected := LoginOutput{
 			CommonResponse: business.CommonResponse{
 				StatusCode: 200,
-				Msg: "OK",
-				SessionID: "123",
+				Msg:        "OK",
+				SessionID:  "123",
 			},
 		}
 
@@ -234,16 +232,16 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("SuccessButErrorOnSession", func(t *testing.T) {
-		successDeps := Deps {
+		successDeps := Deps{
 			DB: testDB,
 			CreateSession: func(ctx context.Context, in any) (string, error) {
 				return "", session.InternalErr
 			},
 		}
 
-		in := successDeps.Register(context.Background(), RegisterInput {
+		in := successDeps.Register(context.Background(), RegisterInput{
 			Username: "andremaniani",
-			Email: "andre@gmail.com",
+			Email:    "andre@gmail.com",
 			Password: "Andre123!",
 		})
 
@@ -251,16 +249,16 @@ func TestLogin(t *testing.T) {
 			t.Fatalf("TestLogin.Success - in should be 200, got %v", in)
 		}
 
-		input := LoginInput {
-			Email: "andre@gmail.com",
+		input := LoginInput{
+			Email:    "andre@gmail.com",
 			Password: "Andre123!",
 		}
 
-		expected := LoginOutput {
+		expected := LoginOutput{
 			CommonResponse: business.CommonResponse{
 				StatusCode: 500,
-				Msg: session.InternalErr.Error(),
-				SessionID: "",
+				Msg:        session.InternalErr.Error(),
+				SessionID:  "",
 			},
 		}
 
@@ -286,7 +284,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("UnknownSessionID", func(t *testing.T) {
-		deps := Deps {
+		deps := Deps{
 			DestroySession: func(ctx context.Context, sessionID string) error {
 				return session.UnknownSessionID
 			},
@@ -306,7 +304,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("InternalErr", func(t *testing.T) {
-		deps := Deps {
+		deps := Deps{
 			DestroySession: func(ctx context.Context, sessionID string) error {
 				return session.InternalErr
 			},
@@ -326,7 +324,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		deps := Deps {
+		deps := Deps{
 			DestroySession: func(ctx context.Context, sessionID string) error {
 				return nil
 			},
@@ -351,20 +349,20 @@ func setup() (func() error, error) {
 
 	req := testcontainers.ContainerRequest{
 		Image:        "postgres:latest",
-        ExposedPorts: []string{"5432/tcp"},
-        WaitingFor:   wait.ForListeningPort("5432/tcp"),
-        Env: map[string]string{
-            "POSTGRES_DB":       "testdb",
-            "POSTGRES_PASSWORD": "postgres",
-            "POSTGRES_USER":     "postgres",
-        },
+		ExposedPorts: []string{"5432/tcp"},
+		WaitingFor:   wait.ForListeningPort("5432/tcp"),
+		Env: map[string]string{
+			"POSTGRES_DB":       "testdb",
+			"POSTGRES_PASSWORD": "postgres",
+			"POSTGRES_USER":     "postgres",
+		},
 	}
 
 	container, err := testcontainers.GenericContainer(
-			ctx, 
-			testcontainers.GenericContainerRequest{
-        	ContainerRequest: req,
-        	Started:          true,
+		ctx,
+		testcontainers.GenericContainerRequest{
+			ContainerRequest: req,
+			Started:          true,
 		},
 	)
 
@@ -373,14 +371,14 @@ func setup() (func() error, error) {
 	}
 
 	mappedPort, err := container.MappedPort(ctx, "5432")
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
 	hostIP, err := container.Host(ctx)
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
 	uri := fmt.Sprintf("postgres://postgres:postgres@%v:%v/testdb?sslmode=disable", hostIP, mappedPort.Port())
 
@@ -396,8 +394,8 @@ func setup() (func() error, error) {
 	if err := config.MigrateAll(testDB); err != nil {
 		return nil, err
 	}
-	
-	cleanup := func () error {
+
+	cleanup := func() error {
 		return container.Terminate(ctx)
 	}
 

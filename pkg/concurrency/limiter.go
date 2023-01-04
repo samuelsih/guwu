@@ -11,8 +11,8 @@ type Limiter struct {
 	PanicErr error
 
 	worker sync.WaitGroup
-	limit chan struct{}
-	once sync.Once
+	limit  chan struct{}
+	once   sync.Once
 }
 
 func New(amount int) *Limiter {
@@ -30,7 +30,7 @@ func (lim *Limiter) Go(f func()) {
 
 	go func() {
 		defer func() {
-			<- lim.limit
+			<-lim.limit
 			lim.worker.Done()
 		}()
 
@@ -47,8 +47,8 @@ func (lim *Limiter) GoWithCtx(ctx context.Context, f func()) {
 
 	select {
 	case lim.limit <- struct{}{}:
-	
-	case <- ctx.Done():
+
+	case <-ctx.Done():
 		return
 	}
 
@@ -56,20 +56,19 @@ func (lim *Limiter) GoWithCtx(ctx context.Context, f func()) {
 
 	go func() {
 		defer func() {
-			<- lim.limit
+			<-lim.limit
 			lim.worker.Done()
 		}()
 
 		defer lim.catchPanic()
 
 		f()
-	}()	
+	}()
 }
 
 func (lim *Limiter) Wait() {
 	lim.worker.Wait()
 }
-
 
 func (lim *Limiter) catchPanic() {
 	if r := recover(); r != nil {

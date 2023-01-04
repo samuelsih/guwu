@@ -12,8 +12,8 @@ import (
 
 type Deps struct {
 	DB *sqlx.DB
-	
-	CreateSession func(ctx context.Context, in any) (string, error)
+
+	CreateSession  func(ctx context.Context, in any) (string, error)
 	DestroySession func(ctx context.Context, sessionID string) error
 }
 
@@ -54,12 +54,12 @@ func (d *Deps) Login(ctx context.Context, in LoginInput) LoginOutput {
 	}
 
 	sessionID, err := d.CreateSession(ctx, user.Cleanup())
-	
+
 	if err != nil {
 		out.SetError(500, err.Error())
 		return out
 	}
-	
+
 	out.User = user.Cleanup()
 	out.SessionID = sessionID
 	out.SetOK()

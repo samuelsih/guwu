@@ -8,7 +8,7 @@ import (
 
 func UniqueColumn(err error) (string, error) {
 	if e, ok := err.(*pq.Error); ok {
-		if(e.Code == "23505") {
+		if e.Code == "23505" {
 			return getUniqueColumn(e.Constraint), e
 		}
 	}
@@ -20,5 +20,5 @@ func getUniqueColumn(str string) string {
 	// users_column_key
 	s := strings.Split(str, "_")
 
-	return strings.Join(s[1:len(s) - 1], " ")
+	return strings.Join(s[1:len(s)-1], " ")
 }
