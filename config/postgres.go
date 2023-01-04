@@ -1,31 +1,32 @@
 package config
 
 import (
-	"github.com/rs/zerolog/log"
+	"github.com/jmoiron/sqlx"
+	"log"
 
 	_ "embed"
-
 	_ "github.com/lib/pq"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 //go:embed init.up.sql
 var sqlUp string
 
-func ConnectPostgres(dsn string) *sqlx.DB {	
-	if dsn == "" {
-		dsn = "host=localhost port=5432 user=postgres password=postgres dbname=testdb sslmode=disable timezone=UTC connect_timeout=5 sslmode=disable"
-	}
-
+func ConnectPostgres(dsn string) *sqlx.DB {
 	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		log.Printf("Error connecting to postgres: %v", err)
+		return nil
 	}
 
-	log.Info().Msg("Postgres serve on : " + dsn)
+	log.Println("Postgres connect")
 
 	return db
+}
+
+func LoadPostgresExtension(db *sqlx.DB) error {
+	_, err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+
+	return err
 }
 
 func MigrateAll(db *sqlx.DB) error {

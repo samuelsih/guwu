@@ -1,4 +1,4 @@
-package service
+package auth
 
 import (
 	"errors"
@@ -6,8 +6,6 @@ import (
 	"net/mail"
 	"strings"
 	"unicode"
-
-	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -22,30 +20,27 @@ var (
 	errPasswordSymbolChar = errors.New("password must contains symbol char")
 	errPasswordNumChar    = errors.New("password must contains number char")
 
-	errUsernameRequired  = errors.New("name is required")
-	errUsernameMaxLength = errors.New("name length must be lower than 100 characters")
+	errUsernameRequired  = errors.New("username is required")
+	errUsernameMaxLength = errors.New("username length must be lower than 50 characters")
 )
 
-func validateSignIn(data GuestRegisterIn) error {
-	if err := validateEmail(data.Email); err != nil {
-		log.Debug().Stack().Err(err).Str("place", "validate email")
+func validAccount(username, email, password string) error {
+	if err := validEmail(email); err != nil {
 		return err
 	}
 
-	if err := validateUsername(data.Username); err != nil {
-		log.Debug().Stack().Err(err).Str("place", "validate name")
+	if err := validUsername(username); err != nil {
 		return err
 	}
 
-	if err := validatePassword(data.Password); err != nil {
-		log.Debug().Stack().Err(err).Str("place", "validate password")
+	if err := validPassword(password); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func validateEmail(email string) error {
+func validEmail(email string) error {
 	if email == "" {
 		return errEmailRequired
 	}
@@ -65,7 +60,7 @@ func validateEmail(email string) error {
 	return nil
 }
 
-func validateUsername(name string) error {
+func validUsername(name string) error {
 	if name == "" {
 		return errUsernameRequired
 	}
@@ -77,7 +72,7 @@ func validateUsername(name string) error {
 	return nil
 }
 
-func validatePassword(password string) error {
+func validPassword(password string) error {
 	if password == "" {
 		return errPasswordRequired
 	}

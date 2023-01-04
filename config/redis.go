@@ -10,20 +10,20 @@ import (
 
 func NewRedis(url string) *redis.Client {
 	var rdb *redis.Client
-	
+
 	if url == "" {
 		url = `localhost:6379`
 		rdb = redis.NewClient(&redis.Options{
-			Addr: url,
+			Addr:     url,
 			Password: "",
-			DB: 0,
+			DB:       0,
 		})
 	} else {
 		opt, err := redis.ParseURL(url)
 		if err != nil {
 			panic(err)
 		}
-	
+
 		rdb = redis.NewClient(opt)
 	}
 

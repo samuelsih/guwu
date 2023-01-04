@@ -1,143 +1,82 @@
-package guwu
+package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/joho/godotenv/autoload"
-	"github.com/rs/zerolog/log"
-	"github.com/samuelsih/guwu/config"
-	"github.com/samuelsih/guwu/mail"
-	"github.com/samuelsih/guwu/model"
-	"github.com/samuelsih/guwu/service"
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	idleTimeout  = 1 * time.Minute
+	readTimeout  = 10 * time.Second
+	writeTimeout = 30 * time.Second
+	ctxTimeout   = 5 * time.Second
+)
+
 type Server struct {
-	Router    *chi.Mux
-	DB        *sqlx.DB
-	SessionDB *redis.Client
-	Mailer *mail.Mailer
+	Router       *chi.Mux
+	Dependencies BusinessDeps
+
+	eg *errgroup.Group
 }
 
-func NewServer(production bool) *Server {
-	if production {
-		s := &Server{
-			Router:    chi.NewRouter(),
-			DB:        config.ConnectPostgres(os.Getenv("COCKROACH_DSN")),
-			SessionDB: config.NewRedis(os.Getenv("REDIS_URL")),
-			Mailer: mail.NewMailer(os.Getenv("MAILER_HOST"), os.Getenv("MAILER_ADDR"), os.Getenv("MAILER_EMAIL"), os.Getenv("MAILER_PASSWORD")),
-		}
-
-		config.MigrateAll(s.DB)
-
-		return s
-	}
-
-	s := &Server{
-		Router:    chi.NewRouter(),
-		DB:        config.ConnectPostgres(""),
-		SessionDB: config.NewRedis(""),
-		Mailer: mail.NewMailer("localhost:1025", "localhost", "info@gmail.com", ""),
-	}
-
-	if err := config.MigrateAll(s.DB); err != nil {
-		log.Fatal().Msg("Cant migrate: " + err.Error())
-	}
-
-	go s.Mailer.Listen()
-
-	return s
+type BusinessDeps struct {
+	DB *sqlx.DB
 }
 
-func (s *Server) load() {
-	session := model.SessionDeps{Conn: s.SessionDB}
-
-	guest := service.Guest{DB: s.DB, SessionDB: s.SessionDB}
-	posts := service.Post{DB: s.DB}
-
-	verification := service.Verification{SendEmail: s.Mailer.Send}
-
-	s.Router.Post("/register", loginOrRegister(guest.Register))
-	s.Router.Post("/login", loginOrRegister(guest.Login))
-	s.Router.Post("/logout", logout(guest.Logout))
-
-	s.Router.Get("/timeline", get(posts.Timeline))
-	s.Router.Post("/post", post(session, posts.Insert))
-	s.Router.Put("/post/{id}", put(session, "id", posts.Edit))
-
-	s.Router.Get("/send-mail/{email}", getWithParam(verification.Send, "email"))
-
-	s.Router.Mount("/debug", middleware.Profiler())
-}
-
-func (s *Server) Run(stop <-chan os.Signal) {
-	s.Router.Use(
-		middleware.RequestID,
-		s.Logger(),
-		s.JSONResponse(),
-	)
-
-	s.load()
-
+func (s *Server) Run(addr string) error {
 	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: s.Router,
+		Addr:         addr,
+		Handler:      s.Router,
+		IdleTimeout:  idleTimeout,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
 	}
 
-	go func() {
-		log.Info().Msg("Listening on port :8080")
-		if err := srv.ListenAndServe(); err != nil {
-			if err != http.ErrServerClosed {
-				log.Fatal().Msg("Cant start server: " + err.Error())
-			}
-		}
-	}()
+	shutdownError := make(chan error)
 
-	<-stop
+	go s.notifyShutdown(srv, shutdownError)
 
-	log.Info().Msg("Shutting Down received")
+	err := srv.ListenAndServe()
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
 
-	eg := &errgroup.Group{}
+	return <-shutdownError
+}
 
-	s.Mailer.Close()
+func (s *Server) Shutdown(ctx context.Context) error {
+	var egCtx context.Context
+	s.eg, egCtx = errgroup.WithContext(ctx)
 
-	eg.Go(func() error {
-		err := s.DB.Close()
-
-		if err != nil {
-			log.Error().Msg("Error closing db: " + err.Error())
-			return err
-		}
-
-		log.Info().Msg("Closing DB Success")
-		return nil
+	s.eg.Go(func() error {
+		return s.Dependencies.DB.Close()
 	})
 
-	eg.Go(func() error {
-		err := s.SessionDB.Close()
+	select {
+	case <-egCtx.Done():
+		return egCtx.Err()
 
-		if err != nil {
-			log.Error().Msg("Error closing session db: " + err.Error())
-			return err
-		}
-
-		log.Info().Msg("Closing Session DB Success")
-		return nil
-	})
-
-	if err := srv.Shutdown(context.Background()); err != nil {
-		log.Fatal().Msg("Error shutting down: " + err.Error())
+	default:
+		return s.eg.Wait()
 	}
+}
 
-	if err := eg.Wait(); err != nil {
-		log.Fatal().Msg("Error on closing database" + err.Error())
-	}
+func (s *Server) notifyShutdown(server *http.Server, shutdownErr chan<- error) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
 
-	log.Info().Msg("Shutdown complete")
+	ctx, cancel := context.WithTimeout(context.Background(), ctxTimeout)
+	defer cancel()
+
+	shutdownErr <- server.Shutdown(ctx)
 }

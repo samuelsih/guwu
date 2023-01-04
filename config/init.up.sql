@@ -1,5 +1,8 @@
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS users;
+
 CREATE TABLE IF NOT EXISTS users (
-    id varchar(100) not null primary key,
+    id varchar(100) not null primary key default uuid_generate_v4(),
     username varchar(255) not null,
     email varchar(255) not null unique,
     password varchar(255) not null,

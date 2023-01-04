@@ -2,93 +2,105 @@ package model
 
 import (
 	"context"
-	_ "embed"
+	"database/sql"
 	"errors"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
-	"github.com/rs/xid"
-	"github.com/rs/zerolog/log"
+	"github.com/samuelsih/guwu/pkg/pgerr"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
-	ID        string    `db:"id" json:"id"`
-	Username  string    `db:"username" json:"username"`
-	Email     string    `db:"email" json:"email"`
-	Password  string    `db:"password" json:"-"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt NullTime `db:"updated_at" json:"updated_at,omitempty"`
+	db         *sqlx.DB `json:"-"`
+	Err        error    `json:"-"`
+	StatusCode int      `json:"-"`
+
+	ID        string     `db:"id" json:"id"`
+	Username  string     `db:"username" json:"username"`
+	Email     string     `db:"email" json:"email"`
+	Password  NullString `db:"password" json:"-"`
+	CreatedAt time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt NullTime   `db:"updated_at" json:"updated_at,omitempty"`
 }
 
-type UserDeps struct {
-	DB *sqlx.DB
+func NewUser(db *sqlx.DB) *User {
+	return &User{db: db}
 }
 
-func (u *UserDeps) Insert(ctx context.Context, username, email, password string) (User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func (u *User) FindByEmail(ctx context.Context, email string) bool {
+	query := `SELECT id, username, email, password, created_at, updated_at FROM users WHERE email = $1`
+	err := u.db.GetContext(ctx, u, query, email)
+
 	if err != nil {
-		log.Debug().Stack().Err(err).Str("place", "user.Insert.HashPassword")
-		return User{}, err
-	}
-
-	user := User{
-		ID: xid.New().String(),
-		Username: username,
-		Email: email,
-		Password: string(hashedPassword),
-		CreatedAt: time.Now().UTC(),
-	}
-
-	query := `INSERT INTO users (id, username, email, password, created_at) 
-			VALUES ($1, $2, $3, $4, $5)`
-
-	_, err = u.DB.ExecContext(ctx, query, user.ID, user.Username, user.Email, user.Password, user.CreatedAt)
-	if err != nil {
-		if sqlerr, ok := err.(*pq.Error); ok {
-			switch sqlerr.Code {
-			case "23505":
-				return User{}, errors.New("email already exists")
-			}
+		if errors.Is(err, sql.ErrNoRows) {
+			u.Err = fmt.Errorf("unknown user")
+			u.StatusCode = 400
+			return false
 		}
 
-		log.Debug().Stack().Err(err).Str("place", "user.Insert.ExecContext")
-		return User{}, err
+		log.Printf("User.FindByEmail: %v", err)
+		u.Err = fmt.Errorf("can't find user's email, try again later")
+		u.StatusCode = 500
+		return false
 	}
 
-	return user, nil
+	return (u.ID != "") && (err == nil)
 }
 
-func (u *UserDeps) GetUserByEmail(email string) (User, statusCode, error) {
-	query := `SELECT id, username, email, password FROM users WHERE email = $1`
-
-	var user User
-	err := u.DB.Get(&user, query, email)
+func (u *User) CheckPassword(password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(u.Password.String), []byte(password))
 
 	if err != nil {
-		log.Debug().Stack().Err(err).Str("place", "user.GetUserByEmail")
-		return user, BadRequest, errors.New("user not found")
+		u.Err = fmt.Errorf(`unknown type of password`)
+		u.StatusCode = 400
+		return false
 	}
-	
-	return user, OK, nil
+
+	return true
 }
 
-func (u *UserDeps) FindUserByUsername(ctx context.Context, username string) ([]User, error) {
-	query := `SELECT username FROM users WHERE username ILIKE $1`
+func (u *User) Insert(ctx context.Context) bool {
+	query := `
+		INSERT INTO users(username, email, password)
+		VALUES ($1, $2, $3)
+		RETURNING id, created_at;
+	`
 
-	var users []User
-	err := u.DB.SelectContext(ctx, &users, query, username)
-
+	err := u.db.QueryRowContext(ctx, query, u.Username, u.Email, u.Password.String).Scan(&u.ID, &u.CreatedAt)
 	if err != nil {
-		log.Debug().Stack().Err(err).Str("place", "user.FindUserByUsername")
-		return nil, errors.New("user not found")
+		if column, e := pgerr.UniqueColumn(err); e != nil {
+			u.Err = fmt.Errorf("%v already taken, please take another %v", column, column)
+			u.StatusCode = 400
+			return false
+		}
+
+		log.Printf("User.Insert: %v", err)
+		u.Err = fmt.Errorf(`can't insert this user to database`)
+		u.StatusCode = 500
+		return false
 	}
 
-	return users, nil
+	return true
 }
 
-func (u *User) PasswordMatches(password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
-	return err == nil
+func (u *User) SetPassword(password string) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		u.Err = err
+		u.StatusCode = 500
+	}
+	u.Password.String = string(hashed)
+}
+
+func (u User) Cleanup() User {
+	u.db = nil
+	u.Err = nil
+	return u
+}
+
+func (u *User) Error() string {
+	return u.Err.Error()
 }

@@ -1,13 +1,13 @@
-package service
+package auth
 
 import (
 	"math/rand"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func Test_validateEmail(t *testing.T) {
+func Test_validEmail(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		TestUsername string
 		Email        string
@@ -20,14 +20,18 @@ func Test_validateEmail(t *testing.T) {
 		{"Valid_And_Exists", "samuelhotang02@gmail.com", nil},
 	}
 
-	for _, item := range tests {
-		t.Run(item.TestUsername, func(t *testing.T) {
-			assert.Equal(t, item.Result, validateEmail(item.Email))
+	for _, tt := range tests {
+		t.Run(tt.TestUsername, func(t *testing.T) {
+			if tt.Result != validEmail(tt.Email) {
+				t.Errorf("validEmail() = %v, want %v", validEmail(tt.Email), tt.Result)
+			}
 		})
 	}
 }
 
-func Test_validateUsername(t *testing.T) {
+func Test_validUsername(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		TestUsername string
 		Username     string
@@ -39,14 +43,18 @@ func Test_validateUsername(t *testing.T) {
 		{"Valid_With_Random_String", generateRandomStr(50), nil},
 	}
 
-	for _, item := range tests {
-		t.Run(item.TestUsername, func(t *testing.T) {
-			assert.Equal(t, item.Result, validateUsername(item.Username))
+	for _, tt := range tests {
+		t.Run(tt.TestUsername, func(t *testing.T) {
+			if tt.Result != validUsername(tt.Username) {
+				t.Errorf("validEmail() = %v, want %v", validUsername(tt.Username), tt.Result)
+			}
 		})
 	}
 }
 
-func Test_validatePassword(t *testing.T) {
+func Test_validPassword(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		TestUsername string
 		Password     string
@@ -61,27 +69,31 @@ func Test_validatePassword(t *testing.T) {
 		{"Valid", "Hayangulin123!!", nil},
 	}
 
-	for _, item := range tests {
-		t.Run(item.TestUsername, func(t *testing.T) {
-			assert.Equal(t, item.Result, validatePassword(item.Password))
+	for _, tt := range tests {
+		t.Run(tt.TestUsername, func(t *testing.T) {
+			if tt.Result != validPassword(tt.Password) {
+				t.Errorf("validPassword() = %v, want %v", validPassword(tt.Password), tt.Result)
+			}
 		})
 	}
 }
 
 func Test_validateSignIn_Combine(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
-		args    GuestRegisterIn
+		args    RegisterInput
 		wantErr bool
 	}{
-		{"Empty", GuestRegisterIn{}, true},
-		{"Invalid Email", GuestRegisterIn{Email: "invalid@example.com"}, true},
-		{"Invalid Username", GuestRegisterIn{Email: "samuelhotang02@gmail.com", Username: generateRandomStr(200)}, true},
-		{"Invalid Password", GuestRegisterIn{Email: "samuelhotang02@gmail.com", Username: generateRandomStr(20), Password: "aingmaung"}, true},
+		{"Empty", RegisterInput{}, true},
+		{"Invalid Email", RegisterInput{Email: "invalid@example.com"}, true},
+		{"Invalid Username", RegisterInput{Email: "samuelhotang02@gmail.com", Username: generateRandomStr(200)}, true},
+		{"Invalid Password", RegisterInput{Email: "samuelhotang02@gmail.com", Username: generateRandomStr(20), Password: "aingmaung"}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateSignIn(tt.args); (err != nil) != tt.wantErr {
+			if err := validAccount(tt.args.Username, tt.args.Email, tt.args.Password); (err != nil) != tt.wantErr {
 				t.Errorf("validateSignIn() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -99,5 +111,4 @@ func generateRandomStr(n int) string {
 
 	return string(b)
 }
-
 
