@@ -2,46 +2,56 @@ package limiter
 
 import (
 	"context"
-	"sync/atomic"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestSimpleLimiter(t *testing.T) {
-	var counter atomic.Uint32
+	var mu sync.Mutex
+	var counter int
 
 	var limiter = New(5)
 
 	for i := 0; i < 5; i++ {
 		limiter.Go(func() {
-			counter.Add(1)
+			mu.Lock()
+			defer mu.Unlock()
+
+			counter++
 		})
 	}
 
 	limiter.Wait()
 
-	if counter.Load() != 5 {
-		t.Fatalf("TestSimpleLimiter - expected 5, got %v", counter.Load())
+	if counter != 5 {
+		t.Fatalf("TestSimpleLimiter - expected 5, got %v", counter)
 	}
 }
 
 func TestLimiterCtx(t *testing.T) {
+	var mu sync.Mutex
+
 	var limiter = New(5)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	var counter atomic.Uint32
+	var counter int
 
 	for i := 0; i < 5; i++ {
 		limiter.GoWithCtx(ctx, func() {
 			time.Sleep(3 * time.Second)
-			counter.Add(1)
+			
+			mu.Lock()
+			defer mu.Unlock()
+
+			counter++
 		})
 	}
 
-	if counter.Load() != 0 {
-		t.Fatalf("TestLimiterCtx - expected 0, got %v", counter.Load())
+	if counter != 0 {
+		t.Fatalf("TestLimiterCtx - expected 0, got %v", counter)
 	}
 
 	limiter.Wait()
