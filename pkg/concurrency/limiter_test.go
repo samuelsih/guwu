@@ -8,7 +8,7 @@ import (
 )
 
 func TestSimpleLimiter(t *testing.T) {
-	var counter atomic.Int32
+	var counter atomic.Uint32
 
 	var limiter = New(5)
 
@@ -31,7 +31,7 @@ func TestLimiterCtx(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
 
-	var counter atomic.Int32
+	var counter atomic.Uint32
 
 	for i := 0; i < 5; i++ {
 		limiter.GoWithCtx(ctx, func() {
