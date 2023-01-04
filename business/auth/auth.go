@@ -2,14 +2,19 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/samuelsih/guwu/business"
 	"github.com/samuelsih/guwu/model"
+	"github.com/samuelsih/guwu/pkg/session"
 )
 
 type Deps struct {
 	DB *sqlx.DB
+	
+	CreateSession func(ctx context.Context, in any) (string, error)
+	DestroySession func(ctx context.Context, sessionID string) error
 }
 
 type LoginInput struct {
@@ -48,7 +53,15 @@ func (d *Deps) Login(ctx context.Context, in LoginInput) LoginOutput {
 		return out
 	}
 
+	sessionID, err := d.CreateSession(ctx, user.Cleanup())
+	
+	if err != nil {
+		out.SetError(500, err.Error())
+		return out
+	}
+	
 	out.User = user.Cleanup()
+	out.SessionID = sessionID
 	out.SetOK()
 
 	return out
@@ -87,6 +100,36 @@ func (d *Deps) Register(ctx context.Context, in RegisterInput) RegisterOutput {
 
 	if !user.Insert(ctx) {
 		out.SetError(user.StatusCode, user.Error())
+		return out
+	}
+
+	out.SetOK()
+	return out
+}
+
+type LogoutInput struct {
+	business.CommonRequest
+}
+
+type LogoutOutput struct {
+	business.CommonResponse
+}
+
+func (d *Deps) Logout(ctx context.Context, in LogoutInput) LogoutOutput {
+	var out LogoutOutput
+
+	if in.SessionID == "" {
+		out.SetError(400, "session id is required")
+		return out
+	}
+
+	if err := d.DestroySession(ctx, in.SessionID); err != nil {
+		if errors.Is(err, session.UnknownSessionID) {
+			out.SetError(400, err.Error())
+			return out
+		}
+
+		out.SetError(500, err.Error())
 		return out
 	}
 

@@ -13,6 +13,7 @@ import (
 	"github.com/samuelsih/guwu/business"
 	"github.com/samuelsih/guwu/config"
 	"github.com/samuelsih/guwu/model"
+	"github.com/samuelsih/guwu/pkg/session"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -195,7 +196,14 @@ func TestLogin(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		in := deps.Register(context.Background(), RegisterInput {
+		successDeps := Deps {
+			DB: testDB,
+			CreateSession: func(ctx context.Context, in any) (string, error) {
+				return "123", nil
+			},
+		}
+
+		in := successDeps.Register(context.Background(), RegisterInput {
 			Username: "gustalagusta",
 			Email: "gustalagusta@gmail.com",
 			Password: "Testing123!",
@@ -214,13 +222,126 @@ func TestLogin(t *testing.T) {
 			CommonResponse: business.CommonResponse{
 				StatusCode: 200,
 				Msg: "OK",
+				SessionID: "123",
 			},
 		}
 
-		got := deps.Login(context.Background(), input)
+		got := successDeps.Login(context.Background(), input)
 
-		if expected.StatusCode != got.StatusCode || expected.Msg != got.Msg || got.User == (model.User{}) {
+		if expected.StatusCode != got.StatusCode || expected.Msg != got.Msg || got.User == (model.User{}) || expected.SessionID != "123" {
 			t.Fatalf("TestLogin.Success - expected %v, got %v", expected, got)
+		}
+	})
+
+	t.Run("SuccessButErrorOnSession", func(t *testing.T) {
+		successDeps := Deps {
+			DB: testDB,
+			CreateSession: func(ctx context.Context, in any) (string, error) {
+				return "", session.InternalErr
+			},
+		}
+
+		in := successDeps.Register(context.Background(), RegisterInput {
+			Username: "andremaniani",
+			Email: "andre@gmail.com",
+			Password: "Andre123!",
+		})
+
+		if in.StatusCode != 200 {
+			t.Fatalf("TestLogin.Success - in should be 200, got %v", in)
+		}
+
+		input := LoginInput {
+			Email: "andre@gmail.com",
+			Password: "Andre123!",
+		}
+
+		expected := LoginOutput {
+			CommonResponse: business.CommonResponse{
+				StatusCode: 500,
+				Msg: session.InternalErr.Error(),
+				SessionID: "",
+			},
+		}
+
+		got := successDeps.Login(context.Background(), input)
+
+		if expected != got {
+			t.Fatalf("TestLogin.SuccessButErrorOnSession - expected %v, got %v", expected, got)
+		}
+	})
+}
+
+func TestLogout(t *testing.T) {
+	t.Parallel()
+
+	t.Run("EmptySessionID", func(t *testing.T) {
+		deps := Deps{}
+
+		out := deps.Logout(context.Background(), LogoutInput{})
+
+		if out.StatusCode != 400 {
+			t.Fatalf("TestLogout.EmptySession - expected 400 got %d - %v", out.StatusCode, out)
+		}
+	})
+
+	t.Run("UnknownSessionID", func(t *testing.T) {
+		deps := Deps {
+			DestroySession: func(ctx context.Context, sessionID string) error {
+				return session.UnknownSessionID
+			},
+		}
+
+		input := LogoutInput{
+			CommonRequest: business.CommonRequest{
+				SessionID: "123",
+			},
+		}
+
+		out := deps.Logout(context.Background(), input)
+
+		if out.StatusCode != 400 {
+			t.Fatalf("TestLogout.EmptySession - expected 400 got %d - %v", out.StatusCode, out)
+		}
+	})
+
+	t.Run("InternalErr", func(t *testing.T) {
+		deps := Deps {
+			DestroySession: func(ctx context.Context, sessionID string) error {
+				return session.InternalErr
+			},
+		}
+
+		input := LogoutInput{
+			CommonRequest: business.CommonRequest{
+				SessionID: "123",
+			},
+		}
+
+		out := deps.Logout(context.Background(), input)
+
+		if out.StatusCode != 500 {
+			t.Fatalf("TestLogout.InternalErr - expected 500 got %d - %v", out.StatusCode, out)
+		}
+	})
+
+	t.Run("Success", func(t *testing.T) {
+		deps := Deps {
+			DestroySession: func(ctx context.Context, sessionID string) error {
+				return nil
+			},
+		}
+
+		input := LogoutInput{
+			CommonRequest: business.CommonRequest{
+				SessionID: "02917joaisdd8v92b3ir",
+			},
+		}
+
+		out := deps.Logout(context.Background(), input)
+
+		if out.StatusCode != 200 {
+			t.Fatalf("TestLogout.Success - expected 200 got %d - %v", out.StatusCode, out)
 		}
 	})
 }
