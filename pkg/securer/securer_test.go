@@ -2,7 +2,10 @@ package securer
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
+	"log"
+	"math/big"
 	"testing"
 )
 
@@ -37,10 +40,9 @@ func TestEncodeDecodeFails(t *testing.T) {
 	}
 
 	// try to change the encrypted data
-	r := []rune(encrypted)
-	r[1] = rune(r[10])
+	toDecrypt := randString(encrypted)
 
-	_, err = Decrypt(string(r))
+	_, err = Decrypt(toDecrypt)
 	if err == nil {
 		t.Fatalf("Decrpyt: err should not nil, got nil: %v", err)
 	}
@@ -50,4 +52,18 @@ func generateKey() {
 	b, _ := hex.DecodeString("9732070617373776f726420746f206120736563726574")
 
 	copy(secretKey[:], b)
+}
+
+func randString(str string) string {
+	r := []rune(str)
+	l := len(r) - 1
+
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(l)))
+	if err != nil {
+		log.Fatalf("randString: %v", err)
+	}
+
+	r = append(r, rune(int(n.Int64())))
+
+	return string(r)
 }
