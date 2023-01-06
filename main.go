@@ -9,9 +9,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/samuelsih/guwu/config"
+	"github.com/samuelsih/guwu/pkg/securer"
 )
 
 func main() {
+	var secretKeyBytes [32]byte
+	secretKey := os.Getenv("SECURER_SECRET_KEY")
+	if secretKey == "" {
+		secretKey = "0f5297b6f0114171e9de547801b1e8bb929fe1d091e63c6377a392ec1baa3d0b"
+	} 
+	
+	copy(secretKeyBytes[:], secretKey)
+	securer.SetSecret(secretKeyBytes)
+
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
 		dsn = "host=localhost port=5432 user=postgres password=postgres dbname=guwu sslmode=disable timezone=UTC connect_timeout=5"
@@ -22,9 +32,25 @@ func main() {
 		port = "8080"
 	}
 
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		redisHost = "localhost:6379"
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		redisPassword = ""
+	}
+
 	db := config.ConnectPostgres(dsn)
 
-	if b := flag.Bool("fresh", false, "drop all table and migrate"); *b {
+	remigrate := flag.Bool("fresh", false, "drop all table and migrate")
+	flag.Parse()
+
+	log.Println("Remigrate:", *remigrate)
+
+	if *remigrate {
+		log.Println("Drop the table and remigrate")
 		if err := config.LoadPostgresExtension(db); err != nil {
 			log.Fatalf("error on load postgres extension: %v", err)
 		}
@@ -34,10 +60,16 @@ func main() {
 		}
 	}
 
+	redisDB := config.NewRedis(redisHost, redisPassword)
+	if redisDB == nil {
+		log.Fatalf("redisDB is nil")
+	}
+
 	server := Server{
 		Router: chi.NewRouter(),
 		Dependencies: BusinessDeps{
-			DB: db,
+			DB:      db,
+			RedisDB: redisDB,
 		},
 	}
 

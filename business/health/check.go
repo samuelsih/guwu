@@ -11,16 +11,12 @@ type Deps struct {
 	DB *sqlx.DB
 }
 
-type HealthCheckInput struct {
-	business.CommonRequest
-}
-
 type HealthCheckOutput struct {
 	business.CommonResponse
 	PostgreStatus string `json:"postgre_status"`
 }
 
-func (d *Deps) Check(ctx context.Context, in HealthCheckInput) HealthCheckOutput {
+func (d *Deps) Check(ctx context.Context, data business.CommonInput) HealthCheckOutput {
 	var out HealthCheckOutput
 
 	err := d.DB.PingContext(ctx)

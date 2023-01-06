@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
+	"github.com/rueian/rueidis"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -29,7 +30,8 @@ type Server struct {
 }
 
 type BusinessDeps struct {
-	DB *sqlx.DB
+	DB      *sqlx.DB
+	RedisDB rueidis.Client
 }
 
 func (s *Server) Run(addr string) error {
@@ -59,6 +61,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 	s.eg.Go(func() error {
 		return s.Dependencies.DB.Close()
+	})
+
+	s.eg.Go(func() error {
+		s.Dependencies.RedisDB.Close()
+		return nil
 	})
 
 	select {

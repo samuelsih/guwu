@@ -5,20 +5,23 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/xid"
 	"github.com/samuelsih/guwu/business"
 	"github.com/samuelsih/guwu/model"
-	"github.com/samuelsih/guwu/pkg/session"
+	"github.com/samuelsih/guwu/pkg/redis"
+	"github.com/samuelsih/guwu/pkg/securer"
 )
+
+const SESS_MAX_AGE = 60 * 60 * 24
 
 type Deps struct {
 	DB *sqlx.DB
 
-	CreateSession  func(ctx context.Context, in any) (string, error)
+	CreateSession  func(ctx context.Context, key string, in any, time int64) error
 	DestroySession func(ctx context.Context, sessionID string) error
 }
 
 type LoginInput struct {
-	business.CommonRequest
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -28,7 +31,7 @@ type LoginOutput struct {
 	User model.User `json:"user"`
 }
 
-func (d *Deps) Login(ctx context.Context, in LoginInput) LoginOutput {
+func (d *Deps) Login(ctx context.Context, in LoginInput, commonIn business.CommonInput) LoginOutput {
 	var out LoginOutput
 
 	if err := validEmail(in.Email); err != nil {
@@ -53,22 +56,31 @@ func (d *Deps) Login(ctx context.Context, in LoginInput) LoginOutput {
 		return out
 	}
 
-	sessionID, err := d.CreateSession(ctx, user.Cleanup())
+	sessionID := xid.New().String()
+	authenticatedUser := user.Cleanup()
+
+	err := d.CreateSession(ctx, sessionID, authenticatedUser, int64(SESS_MAX_AGE))
 
 	if err != nil {
 		out.SetError(500, err.Error())
 		return out
 	}
 
-	out.User = user.Cleanup()
-	out.SessionID = sessionID
+	encryptedSessionID, err := securer.Encrypt([]byte(sessionID))	
+	if err != nil {
+		out.SetError(500, err.Error())
+		return out
+	}
+
+	out.User = authenticatedUser
+	out.SessionID = encryptedSessionID
+	out.SessionMaxAge = SESS_MAX_AGE
 	out.SetOK()
 
 	return out
 }
 
 type RegisterInput struct {
-	business.CommonRequest
 	Email    string `json:"email"`
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -78,7 +90,7 @@ type RegisterOutput struct {
 	business.CommonResponse
 }
 
-func (d *Deps) Register(ctx context.Context, in RegisterInput) RegisterOutput {
+func (d *Deps) Register(ctx context.Context, in RegisterInput, commonIn business.CommonInput) RegisterOutput {
 	var out RegisterOutput
 
 	if err := validAccount(in.Username, in.Email, in.Password); err != nil {
@@ -107,15 +119,11 @@ func (d *Deps) Register(ctx context.Context, in RegisterInput) RegisterOutput {
 	return out
 }
 
-type LogoutInput struct {
-	business.CommonRequest
-}
-
 type LogoutOutput struct {
 	business.CommonResponse
 }
 
-func (d *Deps) Logout(ctx context.Context, in LogoutInput) LogoutOutput {
+func (d *Deps) Logout(ctx context.Context, in business.CommonInput) LogoutOutput {
 	var out LogoutOutput
 
 	if in.SessionID == "" {
@@ -123,9 +131,17 @@ func (d *Deps) Logout(ctx context.Context, in LogoutInput) LogoutOutput {
 		return out
 	}
 
-	if err := d.DestroySession(ctx, in.SessionID); err != nil {
-		if errors.Is(err, session.UnknownSessionID) {
-			out.SetError(400, err.Error())
+	sessID, err := securer.Decrypt(in.SessionID)
+	if err != nil {
+		out.SetError(400, err.Error())
+		return out
+	}
+
+	err =  d.DestroySession(ctx, string(sessID))
+
+	if err != nil {
+		if errors.Is(err, redis.ErrUnknownKey) {
+			out.SetError(400, `unknown session`)
 			return out
 		}
 
@@ -133,6 +149,9 @@ func (d *Deps) Logout(ctx context.Context, in LogoutInput) LogoutOutput {
 		return out
 	}
 
+	out.SessionID = ""
+	out.SessionMaxAge = -1
 	out.SetOK()
+
 	return out
 }

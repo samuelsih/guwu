@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/samuelsih/guwu/business/auth"
 	"github.com/samuelsih/guwu/business/health"
+	"github.com/samuelsih/guwu/pkg/redis"
 	"github.com/samuelsih/guwu/pkg/response"
 	"github.com/samuelsih/guwu/presentation"
 )
@@ -24,12 +25,17 @@ func (s *Server) MountHandlers() {
 }
 
 func (s *Server) authHandlers() {
+	rdb := redis.NewClient(s.Dependencies.RedisDB, "sessionId_")
+
 	authentication := auth.Deps{
-		DB: s.Dependencies.DB,
+		DB:            s.Dependencies.DB,
+		CreateSession: rdb.SetJSON,
+		DestroySession: rdb.Destroy,
 	}
 
-	s.Router.Post("/login", presentation.Post(authentication.Login))
-	s.Router.Post("/register", presentation.Post(authentication.Register))
+	s.Router.Post("/register", presentation.Post(authentication.Register, presentation.OnlyDecodeOpts))
+	s.Router.Post("/login", presentation.Post(authentication.Login, presentation.SetSessionWithDecodeOpts))
+	s.Router.Delete("/logout", presentation.Delete(authentication.Logout, presentation.GetterSetterSessionOpts))
 }
 
 func (s *Server) healthCheckHandlers() {
@@ -37,7 +43,7 @@ func (s *Server) healthCheckHandlers() {
 		DB: s.Dependencies.DB,
 	}
 
-	s.Router.Get("/health", presentation.Get(healthCheck.Check, presentation.Config{}))
+	s.Router.Get("/health", presentation.Get(healthCheck.Check, presentation.Opts{}))
 }
 
 func (s *Server) notFound() {

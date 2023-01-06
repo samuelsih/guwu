@@ -2,41 +2,29 @@ package config
 
 import (
 	"context"
+	"log"
 
-	"github.com/go-redis/redis/v8"
-	_ "github.com/joho/godotenv/autoload"
-	"github.com/rs/zerolog/log"
+	"github.com/rueian/rueidis"
 )
 
-func NewRedis(url string) *redis.Client {
-	var rdb *redis.Client
+func NewRedis(host, password string) rueidis.Client {
+	conn, err := rueidis.NewClient(rueidis.ClientOption{
+		InitAddress: []string{host},
+		Password:    password,
+	})
 
-	if url == "" {
-		url = `localhost:6379`
-		rdb = redis.NewClient(&redis.Options{
-			Addr:     url,
-			Password: "",
-			DB:       0,
-		})
-	} else {
-		opt, err := redis.ParseURL(url)
-		if err != nil {
-			panic(err)
-		}
-
-		rdb = redis.NewClient(opt)
-	}
-
-	err := rdb.Ping(context.Background()).Err()
 	if err != nil {
-		panic(err)
+		log.Printf("cant create redis connection: %v", err)
+		return nil
 	}
 
-	if rdb == nil {
-		panic(`Redis connection is nil`)
+	err = conn.Do(context.Background(), conn.B().Ping().Build()).Error()
+	if err != nil {
+		log.Printf("cant ping redis: %v", err)
+		return nil
 	}
 
-	log.Info().Msg("Redis serve on : " + url)
+	log.Println("Redis connect")
 
-	return rdb
+	return conn
 }

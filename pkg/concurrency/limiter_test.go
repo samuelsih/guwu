@@ -42,7 +42,7 @@ func TestLimiterCtx(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		limiter.GoWithCtx(ctx, func() {
 			time.Sleep(3 * time.Second)
-			
+
 			mu.Lock()
 			defer mu.Unlock()
 
