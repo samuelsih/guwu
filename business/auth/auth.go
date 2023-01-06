@@ -66,7 +66,7 @@ func (d *Deps) Login(ctx context.Context, in LoginInput, commonIn business.Commo
 		return out
 	}
 
-	encryptedSessionID, err := securer.Encrypt([]byte(sessionID))	
+	encryptedSessionID, err := securer.Encrypt([]byte(sessionID))
 	if err != nil {
 		out.SetError(500, err.Error())
 		return out
@@ -137,7 +137,7 @@ func (d *Deps) Logout(ctx context.Context, in business.CommonInput) LogoutOutput
 		return out
 	}
 
-	err =  d.DestroySession(ctx, string(sessID))
+	err = d.DestroySession(ctx, string(sessID))
 
 	if err != nil {
 		if errors.Is(err, redis.ErrUnknownKey) {

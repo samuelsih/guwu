@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	ErrInternal = errors.New("internal error")
+	ErrInternal         = errors.New("internal error")
 	ErrInvalidUnmarshal = errors.New("can't unmarshal")
-	ErrInvalidMarshal = errors.New("can't marshal")
-	ErrUnknownKey = errors.New("unknown input'")
+	ErrInvalidMarshal   = errors.New("can't marshal")
+	ErrUnknownKey       = errors.New("unknown input'")
 )
 
 type Client struct {
@@ -28,7 +28,7 @@ func NewClient(db rueidis.Client, prefix string) *Client {
 }
 
 func (r *Client) Get(ctx context.Context, key string) (string, error) {
-	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix + key).Build()).ToString()
+	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
 
 	if err != nil && !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
 		return "", ErrInternal
@@ -48,7 +48,7 @@ func (r *Client) Set(ctx context.Context, key, value string, time int64) error {
 }
 
 func (r *Client) GetJSON(ctx context.Context, key string, dst any) error {
-	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix + key).Build()).ToString()
+	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
 
 	if err != nil {
 		return ErrInternal
@@ -77,12 +77,12 @@ func (r *Client) SetJSON(ctx context.Context, key string, value any, time int64)
 }
 
 func (r *Client) Destroy(ctx context.Context, key string) error {
-	deleted, err := r.Pool.Do(ctx, r.Pool.B().Del().Key(r.Prefix+key).Build()).ToBool()
+	deleted, err := r.Pool.Do(ctx, r.Pool.B().Del().Key(r.Prefix+key).Build()).ToInt64()
 	if err != nil {
 		return ErrInternal
 	}
 
-	if !deleted {
+	if deleted == 0 {
 		return ErrUnknownKey
 	}
 

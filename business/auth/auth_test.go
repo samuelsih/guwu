@@ -26,7 +26,7 @@ var (
 func TestMain(m *testing.M) {
 	cleanup, err := setup()
 
-	var secretKeyBytes [32]byte	
+	var secretKeyBytes [32]byte
 	copy(secretKeyBytes[:], "0f5297b6f0114171e9de547801b1e8bb929fe1d091e63c6377a392ec1baa3d0b")
 	securer.SetSecret(secretKeyBytes)
 
@@ -109,8 +109,8 @@ func TestRegister(t *testing.T) {
 			Email:    "testing@gmail.com",
 			Username: "heavenlybrush",
 			Password: "Heaven123!",
-		}, 
-		business.CommonInput{})
+		},
+			business.CommonInput{})
 
 		if in.StatusCode != 200 {
 			t.Fatalf("TestRegister.RegisterMultipleAcc - expected 200, got %v", in)
@@ -211,9 +211,9 @@ func TestLogin(t *testing.T) {
 			Username: "gustalagusta",
 			Email:    "gustalagusta@gmail.com",
 			Password: "Testing123!",
-		}, 
+		},
 
-		business.CommonInput{})
+			business.CommonInput{})
 
 		if in.StatusCode != 200 {
 			t.Fatalf("TestLogin.Success - in should be 200, got %v", in)
@@ -250,8 +250,8 @@ func TestLogin(t *testing.T) {
 			Username: "andremaniani",
 			Email:    "andre@gmail.com",
 			Password: "Andre123!",
-		}, 
-		business.CommonInput{})
+		},
+			business.CommonInput{})
 
 		if in.StatusCode != 200 {
 			t.Fatalf("TestLogin.Success - in should be 200, got %v", in)

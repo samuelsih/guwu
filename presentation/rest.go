@@ -10,38 +10,38 @@ import (
 	"github.com/samuelsih/guwu/pkg/response"
 )
 
-type DefaultHandler[out b.CommonOutput] func (ctx context.Context, commonIn b.CommonInput) out
+type DefaultHandler[out b.CommonOutput] func(ctx context.Context, commonIn b.CommonInput) out
 
-type InputHandler[inType any, out b.CommonOutput] func (ctx context.Context, in inType, commonIn b.CommonInput) out
+type InputHandler[inType any, out b.CommonOutput] func(ctx context.Context, in inType, commonIn b.CommonInput) out
 
 type Opts struct {
-	GetSessionCookie bool
-	SetSessionCookie bool
+	GetSessionCookie  bool
+	SetSessionCookie  bool
 	DecodeRequestBody bool
-	
-	URLParams []string
+
+	URLParams   []string
 	QueryParams []string
 }
 
 var (
 	DefaultOpts = Opts{}
 
-	GetterSetterSessionOpts = Opts {
+	GetterSetterSessionOpts = Opts{
 		GetSessionCookie: true,
 		SetSessionCookie: true,
 	}
 
-	GetSessionWithDecodeOpts = Opts {
-		GetSessionCookie: true,
+	GetSessionWithDecodeOpts = Opts{
+		GetSessionCookie:  true,
 		DecodeRequestBody: true,
 	}
 
-	SetSessionWithDecodeOpts = Opts {
-		SetSessionCookie: true,
+	SetSessionWithDecodeOpts = Opts{
+		SetSessionCookie:  true,
 		DecodeRequestBody: true,
 	}
 
-	OnlyDecodeOpts = Opts {
+	OnlyDecodeOpts = Opts{
 		DecodeRequestBody: true,
 	}
 )
@@ -49,7 +49,7 @@ var (
 func Get[outType b.CommonOutput](handle DefaultHandler[outType], opts Opts) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var commonInput = b.CommonInput{
-			URLParam: opts.URLParams,
+			URLParam:   opts.URLParams,
 			QueryParam: opts.QueryParams,
 		}
 
@@ -59,14 +59,14 @@ func Get[outType b.CommonOutput](handle DefaultHandler[outType], opts Opts) http
 			commonInput.SessionID, err = getSessionCookie(r)
 			if err != nil {
 				encodeErr := response.JSON(w, 400, map[string]any{
-					"code": 400,
+					"code":     400,
 					"messsage": err.Error(),
 				})
-	
+
 				if encodeErr != nil {
 					log.Printf("presentation.Get: %v", err)
 				}
-	
+
 				return
 			}
 		}
@@ -86,7 +86,7 @@ func Post[inType any, outType b.CommonOutput](handle InputHandler[inType, outTyp
 		var err error
 
 		var commonInput = b.CommonInput{
-			URLParam: opts.URLParams,
+			URLParam:   opts.URLParams,
 			QueryParam: opts.QueryParams,
 		}
 
@@ -94,29 +94,29 @@ func Post[inType any, outType b.CommonOutput](handle InputHandler[inType, outTyp
 			commonInput.SessionID, err = getSessionCookie(r)
 			if err != nil {
 				encodeErr := response.JSON(w, 400, map[string]any{
-					"code": 400,
+					"code":    400,
 					"message": err.Error(),
 				})
-	
+
 				if encodeErr != nil {
 					log.Printf("presentation.Get: %v", err)
 				}
-	
+
 				return
 			}
 		}
 
 		if opts.DecodeRequestBody {
 			if err = request.Decode(w, r, &in); err != nil {
-				encodeErr := response.JSON(w, 400, map[string] any {
-					"code": 400,
+				encodeErr := response.JSON(w, 400, map[string]any{
+					"code":     400,
 					"messsage": err.Error(),
 				})
-	
+
 				if encodeErr != nil {
 					log.Printf("presentation.Post: %v", err)
 				}
-	
+
 				return
 			}
 
@@ -124,7 +124,7 @@ func Post[inType any, outType b.CommonOutput](handle InputHandler[inType, outTyp
 		}
 
 		out := handle(r.Context(), in, commonInput)
-		
+
 		if opts.SetSessionCookie {
 			setSessionCookie(w, out.CommonRes().SessionID, out.CommonRes().SessionMaxAge)
 		}
@@ -139,7 +139,7 @@ func Post[inType any, outType b.CommonOutput](handle InputHandler[inType, outTyp
 func Delete[outType b.CommonOutput](handle DefaultHandler[outType], opts Opts) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var commonInput = b.CommonInput{
-			URLParam: opts.URLParams,
+			URLParam:   opts.URLParams,
 			QueryParam: opts.QueryParams,
 		}
 
@@ -149,14 +149,14 @@ func Delete[outType b.CommonOutput](handle DefaultHandler[outType], opts Opts) h
 			commonInput.SessionID, err = getSessionCookie(r)
 			if err != nil {
 				encodeErr := response.JSON(w, 400, map[string]any{
-					"code": 400,
+					"code":     400,
 					"messsage": err.Error(),
 				})
-	
+
 				if encodeErr != nil {
 					log.Printf("presentation.Get: %v", err)
 				}
-	
+
 				return
 			}
 		}

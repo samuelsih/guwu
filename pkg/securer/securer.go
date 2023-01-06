@@ -14,7 +14,7 @@ var once sync.Once
 
 var (
 	ErrInvalidData = errors.New("invalid data")
-	ErrInternal = errors.New("internal error")
+	ErrInternal    = errors.New("internal error")
 )
 
 func SetSecret(key [32]byte) {
@@ -39,7 +39,7 @@ func Encrypt(input []byte) (string, error) {
 func Decrypt(input string) ([]byte, error) {
 	box, err := base64.RawURLEncoding.DecodeString(input)
 	if err != nil || len(box) < 24 {
-		return nil, ErrInvalidData 
+		return nil, ErrInvalidData
 	}
 
 	var nonce [24]byte
@@ -49,6 +49,6 @@ func Decrypt(input string) ([]byte, error) {
 	if ok {
 		return out, nil
 	}
-	
+
 	return nil, ErrInvalidData
 }

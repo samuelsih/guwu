@@ -28,8 +28,8 @@ func (s *Server) authHandlers() {
 	rdb := redis.NewClient(s.Dependencies.RedisDB, "sessionId_")
 
 	authentication := auth.Deps{
-		DB:            s.Dependencies.DB,
-		CreateSession: rdb.SetJSON,
+		DB:             s.Dependencies.DB,
+		CreateSession:  rdb.SetJSON,
 		DestroySession: rdb.Destroy,
 	}
 

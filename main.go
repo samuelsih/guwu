@@ -17,8 +17,8 @@ func main() {
 	secretKey := os.Getenv("SECURER_SECRET_KEY")
 	if secretKey == "" {
 		secretKey = "0f5297b6f0114171e9de547801b1e8bb929fe1d091e63c6377a392ec1baa3d0b"
-	} 
-	
+	}
+
 	copy(secretKeyBytes[:], secretKey)
 	securer.SetSecret(secretKeyBytes)
 
