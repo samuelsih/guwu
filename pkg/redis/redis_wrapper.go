@@ -50,7 +50,7 @@ func (r *Client) Set(ctx context.Context, key, value string, time int64) error {
 func (r *Client) GetJSON(ctx context.Context, key string, dst any) error {
 	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
 
-	if err != nil {
+	if err != nil && !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
 		return ErrInternal
 	}
 
