@@ -29,20 +29,20 @@ func TestEncodeDecode(t *testing.T) {
 func TestEncodeDecodeFails(t *testing.T) {
 	generateKey()
 
-	plainText := "some unique id for session or apapun"
+	plainText := "some_unique_id_for_session_or_apapun"
 
 	encrypted, err := Encrypt([]byte(plainText))
 	if err != nil {
-		t.Fatalf("Err should nil, got %v", err)
+		t.Fatalf("Encrypted: err should not nil, got %v", err)
 	}
 
 	// try to change the encrypted data
 	r := []rune(encrypted)
-	r[0] = rune(r[1])
+	r[1] = rune(r[10])
 
 	_, err = Decrypt(string(r))
 	if err == nil {
-		t.Fatalf("Err should not nil, got %v", err)
+		t.Fatalf("Decrpyt: err should not nil, got nil: %v", err)
 	}
 }
 
