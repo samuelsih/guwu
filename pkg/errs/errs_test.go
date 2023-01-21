@@ -7,10 +7,10 @@ import (
 
 func TestErrs(t *testing.T) {
 	err := fnA()
-	err = E("main", errors.New("dari main"), err) 	
+	err = E("main", GetKind(err), err, "unexpected")
 
 	output := Ops(err.(*Error))
-	expected := []string{"main", "fnA", "fnB"}
+	expected := []Op{"main", "fnA", "fnB"}
 
 	if !equal(output, expected) {
 		t.Fatalf("expected %v, got %v", expected, output)
@@ -19,15 +19,15 @@ func TestErrs(t *testing.T) {
 
 func fnA() error {
 	err := fnB()
-
-	return E("fnA", errors.New("error dari fnA"), err)
+	return E("fnA", GetKind(err), err, "client error from fnB")
 }
 
 func fnB() error {
-	return E("fnB", errors.New("error dari fnB"))
+	e := errors.New("error from fnB")
+	return E("fnB", 500, e, "client error from fnB")
 }
 
-func equal(a, b []string) bool {
+func equal(a, b []Op) bool {
 	if len(a) != len(b) {
 		return false
 	}

@@ -1,40 +1,47 @@
 package errs
 
+import (
+	"net/http"
+)
+
 var _ error = (*Error)(nil)
 
-type Error struct {
-	Op   string
+type (
+	Op string
 	Kind int
-	Err  error
-	Raw  any
+	Err error
+)
+
+// common error status code
+const (
+	KindUnauthorized = http.StatusUnauthorized
+	KindNotFound = http.StatusNotFound
+	KindBadRequest = http.StatusBadRequest
+	KindUnexpected = http.StatusInternalServerError
+)
+
+type Error struct {
+	Op   Op
+	Kind Kind
+	Err  Err
+	ClientMsg string
 }
 
 func (e Error) Error() string {
-	return e.Err.Error()
+	return e.ClientMsg
 }
 
-// Generics dont support error type, so any is used
-func E(args ...any) error {
-	e := &Error{}
-
-	for _, arg := range args {
-		switch arg := arg.(type) {
-		case string:
-			e.Op = arg
-
-		case error:
-			e.Err = arg
-
-		default:
-			e.Raw = arg
-		}
+func E(op Op, kind Kind, err Err, clientMsg string) error {
+	return &Error{
+		Op: op,
+		Kind: kind,
+		Err: err,
+		ClientMsg: clientMsg,
 	}
-
-	return e
 }
 
-func Ops(e *Error) []string {
-	res := []string{e.Op}
+func Ops(e *Error) []Op {
+	res := []Op{e.Op}
 
 	for {
 		subErr, ok := e.Err.(*Error)
@@ -45,5 +52,20 @@ func Ops(e *Error) []string {
 		res = append(res, subErr.Op)
 
 		e = subErr
+	}
+}
+
+func GetKind(err error) Kind {
+	for {
+		e, ok := err.(*Error)
+		if !ok {
+			return KindUnexpected
+		}
+
+		if e.Kind != 0 {
+			return e.Kind
+		}
+
+		err = e
 	}
 }
