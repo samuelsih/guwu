@@ -16,6 +16,16 @@ func UniqueColumn(err error) (string, error) {
 	return "", nil
 }
 
+func ForeignKeyColumn(err error) (string, error) {
+	if e, ok := err.(*pq.Error); ok {
+		if e.Code == "23503" {
+			return getUniqueColumn(e.Constraint), e
+		}
+	}
+
+	return "", nil
+}
+
 func getUniqueColumn(str string) string {
 	// users_column_key
 	s := strings.Split(str, "_")

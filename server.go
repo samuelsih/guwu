@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,6 +47,8 @@ func (s *Server) Run(addr string) error {
 	shutdownError := make(chan error)
 
 	go s.notifyShutdown(srv, shutdownError)
+
+	log.Println("Serve on localhost" + addr)
 
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {

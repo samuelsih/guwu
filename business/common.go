@@ -6,7 +6,6 @@ import "net/http"
 var _ CommonOutput = (*CommonResponse)(nil)
 
 type CommonInputMatcher interface{}
-
 type CommonInput struct {
 	SessionID  string
 	URLParam   []string

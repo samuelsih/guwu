@@ -6,11 +6,20 @@ import (
 	"encoding/hex"
 	"log"
 	"math/big"
+	"os"
 	"testing"
 )
 
-func TestEncodeDecode(t *testing.T) {
+func TestMain(m *testing.M) {
 	generateKey()
+
+	code := m.Run()
+
+	os.Exit(code)
+}
+
+func TestEncodeDecode(t *testing.T) {
+	t.Parallel()
 
 	plainText := "some_unique_id_for_session_or_apapun"
 
@@ -30,7 +39,7 @@ func TestEncodeDecode(t *testing.T) {
 }
 
 func TestEncodeDecodeFails(t *testing.T) {
-	generateKey()
+	t.Parallel()
 
 	plainText := "some_unique_id_for_session_or_apapun"
 

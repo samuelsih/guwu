@@ -5,7 +5,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/samuelsih/guwu/business/auth"
+	"github.com/samuelsih/guwu/business/follow"
 	"github.com/samuelsih/guwu/business/health"
 	"github.com/samuelsih/guwu/pkg/redis"
 	"github.com/samuelsih/guwu/pkg/response"
@@ -13,12 +15,19 @@ import (
 )
 
 func (s *Server) MountMiddleware() {
+	s.Router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+
+	}))
 	s.Router.Use(middleware.Recoverer)
 }
 
 func (s *Server) MountHandlers() {
 	s.authHandlers()
 	s.healthCheckHandlers()
+	s.followHandlers()
 
 	s.notFound()
 	s.methodNotAllowed()
@@ -36,6 +45,17 @@ func (s *Server) authHandlers() {
 	s.Router.Post("/register", presentation.Post(authentication.Register, presentation.OnlyDecodeOpts))
 	s.Router.Post("/login", presentation.Post(authentication.Login, presentation.SetSessionWithDecodeOpts))
 	s.Router.Delete("/logout", presentation.Delete(authentication.Logout, presentation.GetterSetterSessionOpts))
+}
+
+func (s *Server) followHandlers() {
+	rdb := redis.NewClient(s.Dependencies.RedisDB, "sessionId_")
+
+	follow := follow.Deps {
+		DB: s.Dependencies.DB,
+		GetUserSession: rdb.GetJSON,
+	}
+
+	s.Router.Post("/follow", presentation.Post(follow.Follow, presentation.GetSessionWithDecodeOpts))
 }
 
 func (s *Server) healthCheckHandlers() {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"strings"
 
 	"github.com/rueian/rueidis"
@@ -13,7 +14,7 @@ var (
 	ErrInternal         = errors.New("internal error")
 	ErrInvalidUnmarshal = errors.New("can't unmarshal")
 	ErrInvalidMarshal   = errors.New("can't marshal")
-	ErrUnknownKey       = errors.New("unknown input'")
+	ErrUnknownKey       = errors.New("unknown input")
 )
 
 type Client struct {
@@ -49,13 +50,19 @@ func (r *Client) Set(ctx context.Context, key, value string, time int64) error {
 
 func (r *Client) GetJSON(ctx context.Context, key string, dst any) error {
 	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
+	if err != nil {
+		if !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
+			log.Println("error pertama:", err)
+			return ErrInternal
+		}
 
-	if err != nil && !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
-		return ErrInternal
+		return ErrUnknownKey
 	}
 
 	err = json.Unmarshal([]byte(result), dst)
+	log.Println(result)
 	if err != nil {
+		log.Println("error marshaling:", err)
 		return ErrInvalidUnmarshal
 	}
 
