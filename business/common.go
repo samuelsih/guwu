@@ -1,6 +1,10 @@
 package business
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/samuelsih/guwu/pkg/errs"
+)
 
 // type check interface
 var _ CommonOutput = (*CommonResponse)(nil)
@@ -19,7 +23,12 @@ type CommonResponse struct {
 	SessionMaxAge int    `json:"-"`
 }
 
-func (res *CommonResponse) SetError(statusCode int, msg string) {
+func (res *CommonResponse) SetError(err error) {
+	res.StatusCode = int(errs.GetKind(err))
+	res.Msg = err.Error()
+}
+
+func (res *CommonResponse) RawError(statusCode int, msg string) {
 	res.StatusCode = statusCode
 	res.Msg = msg
 }

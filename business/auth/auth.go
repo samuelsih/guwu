@@ -2,13 +2,12 @@ package auth
 
 import (
 	"context"
-	"errors"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
 	"github.com/samuelsih/guwu/business"
 	"github.com/samuelsih/guwu/model"
-	"github.com/samuelsih/guwu/pkg/redis"
+	"github.com/samuelsih/guwu/pkg/errs"
 	"github.com/samuelsih/guwu/pkg/securer"
 )
 
@@ -35,44 +34,41 @@ func (d *Deps) Login(ctx context.Context, in LoginInput, commonIn business.Commo
 	var out LoginOutput
 
 	if err := validEmail(in.Email); err != nil {
-		out.SetError(400, err.Error())
+		out.RawError(400, err.Error())
 		return out
 	}
 
 	if in.Password == "" {
-		out.SetError(400, errPasswordRequired.Error())
+		out.RawError(400, "password is required")
 		return out
 	}
 
-	user := model.NewUser(d.DB)
-
-	if !user.FindByEmail(ctx, in.Email) {
-		out.SetError(user.StatusCode, user.Error())
+	user, err := model.FindUserByEmail(ctx, d.DB, in.Email)
+	if err != nil {
+		out.SetError(err)
 		return out
 	}
 
-	if !user.CheckPassword(in.Password) {
-		out.SetError(user.StatusCode, user.Error())
+	if !model.CheckUserPassword(user.Password.String, in.Password) {
+		out.RawError(errs.KindBadRequest, "invalid credentials")
 		return out
 	}
 
 	sessionID := xid.New().String()
-	authenticatedUser := user.Cleanup()
 
-	err := d.CreateSession(ctx, sessionID, authenticatedUser, int64(SESS_MAX_AGE))
-
+	err = d.CreateSession(ctx, sessionID, user, int64(SESS_MAX_AGE))
 	if err != nil {
-		out.SetError(500, err.Error())
+		out.SetError(err)
 		return out
 	}
 
 	encryptedSessionID, err := securer.Encrypt([]byte(sessionID))
 	if err != nil {
-		out.SetError(500, err.Error())
+		out.SetError(err)
 		return out
 	}
 
-	out.User = authenticatedUser
+	out.User = user
 	out.SessionID = encryptedSessionID
 	out.SessionMaxAge = SESS_MAX_AGE
 	out.SetOK()
@@ -94,27 +90,22 @@ func (d *Deps) Register(ctx context.Context, in RegisterInput, commonIn business
 	var out RegisterOutput
 
 	if err := validAccount(in.Username, in.Email, in.Password); err != nil {
-		out.SetError(400, err.Error())
+		out.RawError(400, err.Error())
 		return out
 	}
 
-	user := model.NewUser(d.DB)
-
-	user.SetPassword(in.Password)
-
-	if user.Err != nil {
-		out.SetError(user.StatusCode, user.Error())
+	hashedPassword, err := model.HashPassword(in.Password)
+	if err != nil {
+		out.SetError(err)
 		return out
 	}
 
-	user.Email = in.Email
-	user.Username = in.Username
-
-	if !user.Insert(ctx) {
-		out.SetError(user.StatusCode, user.Error())
+	_, err = model.InsertUser(ctx, d.DB, in.Username, in.Email, hashedPassword)
+	if err != nil {
+		out.SetError(err)
 		return out
 	}
-
+	
 	out.SetOK()
 	return out
 }
@@ -127,25 +118,20 @@ func (d *Deps) Logout(ctx context.Context, in business.CommonInput) LogoutOutput
 	var out LogoutOutput
 
 	if in.SessionID == "" {
-		out.SetError(400, "session id is required")
+		out.RawError(400, "session id is required")
 		return out
 	}
 
 	sessID, err := securer.Decrypt(in.SessionID)
 	if err != nil {
-		out.SetError(400, err.Error())
+		out.SetError(err)
 		return out
 	}
 
 	err = d.DestroySession(ctx, string(sessID))
 
 	if err != nil {
-		if errors.Is(err, redis.ErrUnknownKey) {
-			out.SetError(400, `unknown session`)
-			return out
-		}
-
-		out.SetError(500, err.Error())
+		out.SetError(err)
 		return out
 	}
 

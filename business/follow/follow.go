@@ -2,13 +2,11 @@ package follow
 
 import (
 	"context"
-	"errors"
-	"log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/samuelsih/guwu/business"
 	"github.com/samuelsih/guwu/model"
-	"github.com/samuelsih/guwu/pkg/redis"
+
 	"github.com/samuelsih/guwu/pkg/securer"
 )
 
@@ -27,31 +25,23 @@ type FollowOut struct {
 
 func(d *Deps) Follow(ctx context.Context, in FollowIn, common business.CommonInput) FollowOut {
 	var out FollowOut
-	user := model.User{}
+	var user model.User
 
 	sessionID, err := securer.Decrypt(common.SessionID)
 	if err != nil {
-		out.SetError(403, "Unauthenticated")
+		out.SetError(err)
 		return out
 	}
 
 	err = d.GetUserSession(ctx, string(sessionID), &user)
 	if err != nil {
-		if errors.Is(err, redis.ErrInternal) {
-			out.SetError(500, redis.ErrInternal.Error())
-			return out
-		}
-
-		out.SetError(400, err.Error())
+		out.SetError(err)
 		return out
 	}
 
-	log.Println("ini user:", user)
-
-	userFollow := model.NewUserFollow(d.DB)
-
-	if !userFollow.Insert(ctx, user.ID, in.UserID) {
-		out.SetError(userFollow.StatusCode, userFollow.Err.Error())
+	err = model.FollowUser(ctx, d.DB, user.ID, in.UserID)
+	if err != nil {
+		out.SetError(err)
 		return out
 	}
 

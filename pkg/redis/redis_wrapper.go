@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/rueian/rueidis"
+	"github.com/samuelsih/guwu/pkg/errs"
 )
 
 var (
@@ -29,41 +29,43 @@ func NewClient(db rueidis.Client, prefix string) *Client {
 }
 
 func (r *Client) Get(ctx context.Context, key string) (string, error) {
+	const op = errs.Op("redis_wrapper.Get")
 	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
 
 	if err != nil && !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
-		return "", ErrInternal
+		return "", errs.E(op, errs.KindUnexpected, err, "internal error")
 	}
 
 	return strings.Trim(result, `"`), nil
 }
 
 func (r *Client) Set(ctx context.Context, key, value string, time int64) error {
+	const op = errs.Op("redis_wrapper.Set")
+
 	err := r.Pool.Do(ctx, r.Pool.B().Setex().Key(r.Prefix+key).Seconds(time).Value(value).Build()).Error()
 
 	if err != nil {
-		return ErrInternal
+		return errs.E(op, errs.KindUnexpected, err, "internal error")
 	}
 
 	return nil
 }
 
 func (r *Client) GetJSON(ctx context.Context, key string, dst any) error {
+	const op = errs.Op("redis_wrapper.GetJSON")
+
 	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
 	if err != nil {
 		if !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
-			log.Println("error pertama:", err)
-			return ErrInternal
+			return errs.E(op, errs.KindUnexpected, err, "internal error")
 		}
 
-		return ErrUnknownKey
+		return errs.E(op, errs.KindUnexpected, err, "unknown input")
 	}
 
 	err = json.Unmarshal([]byte(result), dst)
-	log.Println(result)
 	if err != nil {
-		log.Println("error marshaling:", err)
-		return ErrInvalidUnmarshal
+		return errs.E(op, errs.KindBadRequest, err, "cannot unmarshal")
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/samuelsih/guwu/pkg/errs"
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
@@ -24,11 +25,12 @@ func SetSecret(key [32]byte) {
 }
 
 func Encrypt(input []byte) (string, error) {
+	const op = errs.Op("securer.Encrypt")
 	var nonce [24]byte
 
 	_, err := rand.Read(nonce[:])
 	if err != nil {
-		return "", ErrInternal
+		return "", errs.E(op, errs.KindUnexpected, err, "internal error")
 	}
 
 	box := secretbox.Seal(nonce[:], input, &nonce, &secretKey)
@@ -37,9 +39,11 @@ func Encrypt(input []byte) (string, error) {
 }
 
 func Decrypt(input string) ([]byte, error) {
+	const op = errs.Op("securer.Decrypt")
+
 	box, err := base64.RawURLEncoding.DecodeString(input)
 	if err != nil || len(box) < 24 {
-		return nil, ErrInvalidData
+		return nil, errs.E(op, errs.KindBadRequest, err, "invalid data")
 	}
 
 	var nonce [24]byte
@@ -50,5 +54,5 @@ func Decrypt(input string) ([]byte, error) {
 		return out, nil
 	}
 
-	return nil, ErrInvalidData
+	return nil, errs.E(op, errs.KindBadRequest, err, "invalid data")
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/samuelsih/guwu/business"
 	"github.com/samuelsih/guwu/config"
 	"github.com/samuelsih/guwu/model"
+	"github.com/samuelsih/guwu/pkg/errs"
 	"github.com/samuelsih/guwu/pkg/redis"
 	"github.com/samuelsih/guwu/pkg/securer"
 	"github.com/testcontainers/testcontainers-go"
@@ -181,7 +182,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("UnknownUser", func(t *testing.T) {
 		input := LoginInput{
-			Email:    "mail@gmail.com",
+			Email:    "ehehey@gmail.com",
 			Password: "Mail123123!",
 		}
 
@@ -242,7 +243,7 @@ func TestLogin(t *testing.T) {
 		successDeps := Deps{
 			DB: testDB,
 			CreateSession: func(ctx context.Context, key string, in any, time int64) error {
-				return redis.ErrInternal
+				return errs.E(errs.Op("some_op"), errs.KindUnexpected, errors.New("error creating session"), "internal error")
 			},
 		}
 
@@ -298,7 +299,7 @@ func TestLogout(t *testing.T) {
 	t.Run("UnknownSessionID", func(t *testing.T) {
 		deps := Deps{
 			DestroySession: func(ctx context.Context, sessionID string) error {
-				return redis.ErrUnknownKey
+				return errs.E(errs.Op("some_op"), errs.KindBadRequest, err, "unknown input")
 			},
 		}
 
@@ -314,7 +315,7 @@ func TestLogout(t *testing.T) {
 	t.Run("InternalErr", func(t *testing.T) {
 		internalErrDeps := Deps{
 			DestroySession: func(ctx context.Context, sessionID string) error {
-				return redis.ErrInternal
+				return errs.E(errs.Op("some_op"), errs.KindUnexpected, err, "unknown input")
 			},
 		}
 

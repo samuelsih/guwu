@@ -6,6 +6,8 @@ import (
 	"net/mail"
 	"strings"
 	"unicode"
+
+	"github.com/samuelsih/guwu/pkg/errs"
 )
 
 var (
@@ -26,15 +28,15 @@ var (
 
 func validAccount(username, email, password string) error {
 	if err := validEmail(email); err != nil {
-		return err
+		return setError(errs.Op("validation.validAccount.validEmail"), err)
 	}
 
 	if err := validUsername(username); err != nil {
-		return err
+		return setError(errs.Op("validation.validAccount.validUsername"), err)
 	}
 
 	if err := validPassword(password); err != nil {
-		return err
+		return setError(errs.Op("validation.validAccount.validPassword"), err)
 	}
 
 	return nil
@@ -119,4 +121,8 @@ func validPassword(password string) error {
 	}
 
 	return nil
+}
+
+func setError(op errs.Op, err error) error {
+	return errs.E(op, errs.KindBadRequest, err, err.Error())
 }
