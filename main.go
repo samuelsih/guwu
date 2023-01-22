@@ -1,11 +1,8 @@
 package main
 
 import (
-	"context"
 	"flag"
-	"log"
 	"os"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/samuelsih/guwu/config"
@@ -22,13 +19,10 @@ func main() {
 	flag.Parse()
 	logger.SetMode(*debug)
 
-	var secretKeyBytes [32]byte
 	secretKey := os.Getenv("SECURER_SECRET_KEY")
 	if secretKey == "" {
 		secretKey = "0f5297b6f0114171e9de547801b1e8bb929fe1d091e63c6377a392ec1baa3d0b"
 	}
-	copy(secretKeyBytes[:], secretKey)
-	securer.SetSecret(secretKeyBytes)
 
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
@@ -49,8 +43,11 @@ func main() {
 	if redisPassword == "" {
 		redisPassword = ""
 	}
-
+	
 	db := config.ConnectPostgres(dsn)
+	securer.SetSecret(secretKey)
+	redisDB := config.NewRedis(redisHost, redisPassword)
+	router := chi.NewRouter()
 
 	if *remigrate {
 		logger.SysInfo("Drop the table and remigrate")
@@ -63,34 +60,10 @@ func main() {
 		}
 	}
 
-	redisDB := config.NewRedis(redisHost, redisPassword)
-	if redisDB == nil {
-		logger.SysFatal("redisDB is nil")
+	deps := Dependencies {
+		DB: db,
+		Redis: redisDB,
 	}
 
-	server := Server{
-		Router: chi.NewRouter(),
-		Dependencies: BusinessDeps{
-			DB:      db,
-			RedisDB: redisDB,
-		},
-	}
-
-	server.MountHandlers()
-
-	err := server.Run(":" + port)
-	if err != nil {
-		logger.SysFatal("cannot run server: %v", err)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	err = server.Shutdown(ctx)
-	if err != nil {
-		logger.Errorf("Error shutdown server: %v", err)
-		return
-	}
-
-	logger.SysInfo("Server stopped")
+	RunServer(router, ":"+port, deps)
 }

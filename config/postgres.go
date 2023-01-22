@@ -15,7 +15,7 @@ var sqlUp string
 func ConnectPostgres(dsn string) *sqlx.DB {
 	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
-		logger.Errorf("Error connecting to postgres: %v", err)
+		logger.SysFatal("Error connecting to postgres: %v", err)
 		return nil
 	}
 

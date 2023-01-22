@@ -14,13 +14,13 @@ func NewRedis(host, password string) rueidis.Client {
 	})
 
 	if err != nil {
-		logger.Errorf("cant create redis connection: %v", err)
+		logger.SysFatal("cant create redis connection: %v", err)
 		return nil
 	}
 
 	err = conn.Do(context.Background(), conn.B().Ping().Build()).Error()
 	if err != nil {
-		logger.Errorf("cant ping redis: %v", err)
+		logger.SysFatal("cant ping redis: %v", err)
 		return nil
 	}
 

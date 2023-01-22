@@ -14,7 +14,6 @@ require (
 	github.com/rueian/rueidis v0.0.90
 	github.com/testcontainers/testcontainers-go v0.17.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
-	golang.org/x/sync v0.1.0
 )
 
 require (

@@ -18,9 +18,9 @@ var (
 	ErrInternal    = errors.New("internal error")
 )
 
-func SetSecret(key [32]byte) {
+func SetSecret(key string) {
 	once.Do(func() {
-		secretKey = key
+		copy(secretKey[:], key)
 	})
 }
 

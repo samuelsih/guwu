@@ -26,10 +26,7 @@ var (
 
 func TestMain(m *testing.M) {
 	cleanup, err := setup()
-
-	var secretKeyBytes [32]byte
-	copy(secretKeyBytes[:], "0f5297b6f0114171e9de547801b1e8bb929fe1d091e63c6377a392ec1baa3d0b")
-	securer.SetSecret(secretKeyBytes)
+	securer.SetSecret("0f5297b6f0114171e9de547801b1e8bb929fe1d091e63c6377a392ec1baa3d0b")
 
 	if err != nil {
 		log.Fatal(err)

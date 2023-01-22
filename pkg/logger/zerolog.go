@@ -42,6 +42,10 @@ func Err(err error) {
 	logger.Error().Int("status", errs.GetKind(err)).Str("trace", strings.Join(ops, "->")).Msg(err.Error())
 }
 
+func Debug(msg string) {
+	logger.Debug().Msg(msg)
+}
+
 func SysInfo(msg string) {
 	logger.Info().Msg(msg)
 }
