@@ -11,7 +11,7 @@ import (
 )
 
 type Deps struct {
-	DB *sqlx.DB
+	DB             *sqlx.DB
 	GetUserSession func(ctx context.Context, key string, dst any) error
 }
 
@@ -23,7 +23,7 @@ type FollowOut struct {
 	business.CommonResponse
 }
 
-func(d *Deps) Follow(ctx context.Context, in FollowIn, common business.CommonInput) FollowOut {
+func (d *Deps) Follow(ctx context.Context, in FollowIn, common business.CommonInput) FollowOut {
 	var out FollowOut
 	var user model.User
 

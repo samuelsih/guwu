@@ -12,16 +12,16 @@ import (
 )
 
 var (
-	logger    zerolog.Logger
-	once sync.Once
+	logger zerolog.Logger
+	once   sync.Once
 )
 
 func SetMode(debugMode bool) {
 	once.Do(func() {
-		if(debugMode) {
+		if debugMode {
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			output := zerolog.ConsoleWriter{
-				Out: os.Stdout, 
+				Out:        os.Stdout,
 				TimeFormat: time.UnixDate,
 				FormatLevel: func(i any) string {
 					return strings.ToUpper(fmt.Sprintf("[%s]", i))
@@ -29,7 +29,6 @@ func SetMode(debugMode bool) {
 				FormatMessage: func(i any) string {
 					return fmt.Sprintf("<%s>", i)
 				},
-				
 			}
 
 			logger = zerolog.New(output).With().Timestamp().Logger()
@@ -39,7 +38,7 @@ func SetMode(debugMode bool) {
 
 func Err(err error) {
 	ops := errs.Ops(err)
-	
+
 	logger.Error().Int("status", errs.GetKind(err)).Str("trace", strings.Join(ops, "->")).Msg(err.Error())
 }
 

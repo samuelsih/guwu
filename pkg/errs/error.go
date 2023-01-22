@@ -7,23 +7,23 @@ import (
 var _ error = (*Error)(nil)
 
 type (
-	Op = string
+	Op   = string
 	Kind = int
-	Err = error
+	Err  = error
 )
 
 // common error status code
 const (
 	KindUnauthorized = http.StatusUnauthorized
-	KindNotFound = http.StatusNotFound
-	KindBadRequest = http.StatusBadRequest
-	KindUnexpected = http.StatusInternalServerError
+	KindNotFound     = http.StatusNotFound
+	KindBadRequest   = http.StatusBadRequest
+	KindUnexpected   = http.StatusInternalServerError
 )
 
 type Error struct {
-	Op   Op
-	Kind Kind
-	Err  Err
+	Op        Op
+	Kind      Kind
+	Err       Err
 	ClientMsg string
 }
 
@@ -33,9 +33,9 @@ func (e Error) Error() string {
 
 func E(op Op, kind Kind, err Err, clientMsg string) error {
 	return &Error{
-		Op: op,
-		Kind: kind,
-		Err: err,
+		Op:        op,
+		Kind:      kind,
+		Err:       err,
 		ClientMsg: clientMsg,
 	}
 }

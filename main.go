@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	debug = flag.Bool("debug", false, "set log level to debug")
+	debug     = flag.Bool("debug", false, "set log level to debug")
 	remigrate = flag.Bool("fresh", false, "drop all table and migrate")
 )
 
@@ -29,7 +29,7 @@ func main() {
 	}
 	copy(secretKeyBytes[:], secretKey)
 	securer.SetSecret(secretKeyBytes)
-	
+
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
 		dsn = "host=localhost port=5432 user=postgres password=postgres dbname=guwu sslmode=disable timezone=UTC connect_timeout=5"
@@ -88,7 +88,7 @@ func main() {
 
 	err = server.Shutdown(ctx)
 	if err != nil {
-		log.Printf("Error shutdown server: %v", err)
+		logger.Errorf("Error shutdown server: %v", err)
 		return
 	}
 

@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 	client.Pool.Close()
 
 	os.Exit(code)
-}	
+}
 
 func TestGetAndSet(t *testing.T) {
 	t.Parallel()
@@ -59,7 +59,7 @@ func TestGetAndSet_JSON(t *testing.T) {
 		Bar string `json:"bar"`
 	}
 
-	input := foo {
+	input := foo{
 		Bar: "baz",
 	}
 
@@ -69,7 +69,7 @@ func TestGetAndSet_JSON(t *testing.T) {
 	}
 
 	var result foo
-	
+
 	err = client.GetJSON(ctx, "struct", &result)
 	if err != nil {
 		t.Fatalf("Set: expected err is nil, got %v", err)
@@ -111,34 +111,34 @@ func TestDestroy(t *testing.T) {
 }
 
 func setup() error {
-	req := testcontainers.ContainerRequest {
-		Image: "redis",
+	req := testcontainers.ContainerRequest{
+		Image:        "redis",
 		ExposedPorts: []string{"6379/tcp"},
-		WaitingFor: wait.ForLog("* Ready to accept connections"),
+		WaitingFor:   wait.ForLog("* Ready to accept connections"),
 	}
 
 	ctx := context.Background()
 
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest {
-        ContainerRequest: req,
-        Started:          true,
-    })
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
 
 	if err != nil {
 		return err
 	}
 
 	mappedPort, err := container.MappedPort(ctx, "6379")
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    hostIP, err := container.Host(ctx)
-    if err != nil {
-        return err
-    }
+	hostIP, err := container.Host(ctx)
+	if err != nil {
+		return err
+	}
 
-    uri := fmt.Sprintf("%s:%s", hostIP, mappedPort.Port())
+	uri := fmt.Sprintf("%s:%s", hostIP, mappedPort.Port())
 
 	db := config.NewRedis(uri, "")
 	if db == nil {

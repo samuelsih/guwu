@@ -74,7 +74,7 @@ func InsertUser(ctx context.Context, db *sqlx.DB, username, email, password stri
 
 func HashPassword(password string) (string, error) {
 	const op = errs.Op("user.HashPassword")
-	
+
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", errs.E(op, errs.KindUnexpected, err, "unexpected error.")

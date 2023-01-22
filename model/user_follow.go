@@ -11,9 +11,9 @@ import (
 )
 
 type UserFollow struct {
-	UserID string `json:"user_id"`
-	UserFollowID string `json:"user_follow_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UserID       string    `json:"user_id"`
+	UserFollowID string    `json:"user_follow_id"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
 
 func FollowUser(ctx context.Context, db *sqlx.DB, userID string, userWantsToFollow string) error {

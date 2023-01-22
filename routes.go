@@ -16,10 +16,9 @@ import (
 
 func (s *Server) MountMiddleware() {
 	s.Router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-
+		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 	}))
 	s.Router.Use(middleware.Recoverer)
 }
@@ -50,8 +49,8 @@ func (s *Server) authHandlers() {
 func (s *Server) followHandlers() {
 	rdb := redis.NewClient(s.Dependencies.RedisDB, "sessionId_")
 
-	follow := follow.Deps {
-		DB: s.Dependencies.DB,
+	follow := follow.Deps{
+		DB:             s.Dependencies.DB,
 		GetUserSession: rdb.GetJSON,
 	}
 

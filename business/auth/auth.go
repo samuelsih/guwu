@@ -105,7 +105,7 @@ func (d *Deps) Register(ctx context.Context, in RegisterInput, commonIn business
 		out.SetError(err)
 		return out
 	}
-	
+
 	out.SetOK()
 	return out
 }
