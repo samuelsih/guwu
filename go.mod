@@ -10,6 +10,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.7
 	github.com/rs/xid v1.4.0
+	github.com/rs/zerolog v1.28.0
 	github.com/rueian/rueidis v0.0.90
 	github.com/testcontainers/testcontainers-go v0.17.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
@@ -30,6 +31,8 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/klauspost/compress v1.11.13 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/moby/patternmatcher v0.5.0 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
@@ -41,7 +44,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/tools v0.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
 	google.golang.org/grpc v1.47.0 // indirect

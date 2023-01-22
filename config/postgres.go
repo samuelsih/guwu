@@ -2,9 +2,10 @@ package config
 
 import (
 	"github.com/jmoiron/sqlx"
-	"log"
+	"github.com/samuelsih/guwu/pkg/logger"
 
 	_ "embed"
+
 	_ "github.com/lib/pq"
 )
 
@@ -14,11 +15,11 @@ var sqlUp string
 func ConnectPostgres(dsn string) *sqlx.DB {
 	db, err := sqlx.Connect("postgres", dsn)
 	if err != nil {
-		log.Printf("Error connecting to postgres: %v", err)
+		logger.Errorf("Error connecting to postgres: %v", err)
 		return nil
 	}
 
-	log.Println("Postgres connect")
+	logger.SysInfo("Postgres connect")
 
 	return db
 }

@@ -2,9 +2,9 @@ package config
 
 import (
 	"context"
-	"log"
 
 	"github.com/rueian/rueidis"
+	"github.com/samuelsih/guwu/pkg/logger"
 )
 
 func NewRedis(host, password string) rueidis.Client {
@@ -14,17 +14,17 @@ func NewRedis(host, password string) rueidis.Client {
 	})
 
 	if err != nil {
-		log.Printf("cant create redis connection: %v", err)
+		logger.Errorf("cant create redis connection: %v", err)
 		return nil
 	}
 
 	err = conn.Do(context.Background(), conn.B().Ping().Build()).Error()
 	if err != nil {
-		log.Printf("cant ping redis: %v", err)
+		logger.Errorf("cant ping redis: %v", err)
 		return nil
 	}
 
-	log.Println("Redis connect")
+	logger.SysInfo("Redis connect")
 
 	return conn
 }

@@ -7,9 +7,9 @@ import (
 var _ error = (*Error)(nil)
 
 type (
-	Op string
-	Kind int
-	Err error
+	Op = string
+	Kind = int
+	Err = error
 )
 
 // common error status code
@@ -40,18 +40,18 @@ func E(op Op, kind Kind, err Err, clientMsg string) error {
 	}
 }
 
-func Ops(e *Error) []Op {
-	res := []Op{e.Op}
+func Ops(err error) []Op {
+	var res []Op
 
 	for {
-		subErr, ok := e.Err.(*Error)
+		subErr, ok := err.(*Error)
 		if !ok {
 			return res
 		}
 
 		res = append(res, subErr.Op)
 
-		e = subErr
+		err = subErr.Err
 	}
 }
 

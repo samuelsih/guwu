@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/samuelsih/guwu/pkg/errs"
+	"github.com/samuelsih/guwu/pkg/logger"
 )
 
 // type check interface
@@ -24,8 +25,10 @@ type CommonResponse struct {
 }
 
 func (res *CommonResponse) SetError(err error) {
-	res.StatusCode = int(errs.GetKind(err))
+	res.StatusCode = errs.GetKind(err)
 	res.Msg = err.Error()
+
+	logger.Err(err)
 }
 
 func (res *CommonResponse) RawError(statusCode int, msg string) {

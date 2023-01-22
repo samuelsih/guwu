@@ -9,19 +9,27 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/samuelsih/guwu/config"
+	"github.com/samuelsih/guwu/pkg/logger"
 	"github.com/samuelsih/guwu/pkg/securer"
 )
 
+var (
+	debug = flag.Bool("debug", false, "set log level to debug")
+	remigrate = flag.Bool("fresh", false, "drop all table and migrate")
+)
+
 func main() {
+	flag.Parse()
+	logger.SetMode(*debug)
+
 	var secretKeyBytes [32]byte
 	secretKey := os.Getenv("SECURER_SECRET_KEY")
 	if secretKey == "" {
 		secretKey = "0f5297b6f0114171e9de547801b1e8bb929fe1d091e63c6377a392ec1baa3d0b"
 	}
-
 	copy(secretKeyBytes[:], secretKey)
 	securer.SetSecret(secretKeyBytes)
-
+	
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
 		dsn = "host=localhost port=5432 user=postgres password=postgres dbname=guwu sslmode=disable timezone=UTC connect_timeout=5"
@@ -44,25 +52,20 @@ func main() {
 
 	db := config.ConnectPostgres(dsn)
 
-	remigrate := flag.Bool("fresh", false, "drop all table and migrate")
-	flag.Parse()
-
-	log.Println("Remigrate:", *remigrate)
-
 	if *remigrate {
-		log.Println("Drop the table and remigrate")
+		logger.SysInfo("Drop the table and remigrate")
 		if err := config.LoadPostgresExtension(db); err != nil {
-			log.Fatalf("error on load postgres extension: %v", err)
+			logger.SysFatal("error on load postgres extension: %v", err)
 		}
 
 		if err := config.MigrateAll(db); err != nil {
-			log.Fatalf("error on migrate: %v", err)
+			logger.SysFatal("error on migrate: %v", err)
 		}
 	}
 
 	redisDB := config.NewRedis(redisHost, redisPassword)
 	if redisDB == nil {
-		log.Fatalf("redisDB is nil")
+		logger.SysFatal("redisDB is nil")
 	}
 
 	server := Server{
@@ -77,7 +80,7 @@ func main() {
 
 	err := server.Run(":" + port)
 	if err != nil {
-		log.Fatal(err)
+		logger.SysFatal("cannot run server: %v", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -89,5 +92,5 @@ func main() {
 		return
 	}
 
-	log.Println("Server stopped")
+	logger.SysInfo("Server stopped")
 }

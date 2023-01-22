@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
 	"github.com/rueian/rueidis"
+	"github.com/samuelsih/guwu/pkg/logger"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -48,7 +48,7 @@ func (s *Server) Run(addr string) error {
 
 	go s.notifyShutdown(srv, shutdownError)
 
-	log.Println("Serve on localhost" + addr)
+	logger.SysInfo("Serve on localhost" + addr)
 
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
