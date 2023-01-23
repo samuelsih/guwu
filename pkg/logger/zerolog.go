@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pingcap/log"
 	"github.com/rs/zerolog"
 	"github.com/samuelsih/guwu/pkg/errs"
 )
@@ -15,6 +16,11 @@ var (
 	logger zerolog.Logger
 	once   sync.Once
 )
+
+type Pair[T any] struct {
+	Key string
+	Value T
+}
 
 func SetMode(debugMode bool) {
 	once.Do(func() {
@@ -44,6 +50,15 @@ func Err(err error) {
 
 func Debug(msg string) {
 	logger.Debug().Msg(msg)
+}
+
+func Debugs(pairs ...Pair[any]) {
+	dict := zerolog.Dict()
+	for _, pair := range pairs {
+		dict.Interface(pair.Key, pair.Value)
+	}
+
+	logger.Debug().Dict("data", dict)
 }
 
 func SysInfo(msg string) {
