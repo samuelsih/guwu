@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pingcap/log"
 	"github.com/rs/zerolog"
 	"github.com/samuelsih/guwu/pkg/errs"
 )
