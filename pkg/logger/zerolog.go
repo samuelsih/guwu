@@ -56,12 +56,6 @@ func Debug(msg string) {
 	}
 }
 
-func Debugf(msg string, args ...any) {
-	if debug {
-		logger.Debug().Msgf(msg, args)
-	}
-}
-
 func Debugs(pairs ...P) {
 	if debug {
 		dict := zerolog.Dict()
@@ -75,10 +69,6 @@ func Debugs(pairs ...P) {
 
 func SysInfo(msg string) {
 	logger.Info().Msgf(msg)
-}
-
-func SysInfof(msg string, args ...any) {
-	logger.Info().Msgf(msg, args)
 }
 
 func SysErr(err error) {
