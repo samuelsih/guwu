@@ -14,6 +14,7 @@ import (
 var (
 	logger zerolog.Logger
 	once   sync.Once
+	debug bool
 )
 
 type P struct {
@@ -24,6 +25,8 @@ type P struct {
 func SetMode(debugMode bool) {
 	once.Do(func() {
 		if debugMode {
+			debug = debugMode
+
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			output := zerolog.ConsoleWriter{
 				Out:        os.Stdout,
@@ -47,21 +50,25 @@ func Err(err error) {
 	logger.Error().Int("status", errs.GetKind(err)).Str("trace", strings.Join(ops, "->")).Msg(err.Error())
 }
 
-func Debug(msg string) {
-	logger.Debug().Msg(msg)
+func Debug(msg string, args ...any) {
+	if debug {
+		logger.Debug().Msgf(msg, args)
+	}
 }
 
 func Debugs(pairs ...P) {
-	dict := zerolog.Dict()
-	for _, pair := range pairs {
-		dict.Interface(pair.Key, pair.Value)
+	if debug {
+		dict := zerolog.Dict()
+		for _, pair := range pairs {
+			dict.Interface(pair.Key, pair.Value)
+		}
+	
+		logger.Debug().Dict("data", dict)
 	}
-
-	logger.Debug().Dict("data", dict)
 }
 
-func SysInfo(msg string) {
-	logger.Info().Msg(msg)
+func SysInfo(msg string, args ...any) {
+	logger.Info().Msgf(msg, args)
 }
 
 func SysErr(err error) {
