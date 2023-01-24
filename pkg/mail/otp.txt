@@ -1,0 +1,2 @@
+Hello, {{.Username}}
+This is your OTP {{.OTP}}

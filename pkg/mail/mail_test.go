@@ -29,7 +29,19 @@ func TestSend(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
 
-	err := client.Send(ctx, "info@gmail.com", "foo@gmail.com", "Hello", "World")
+	p := Param {
+		Name: "Foo",
+		Email: "foo@gmail.com",
+		Subject: "Hello",
+		TemplateTypes: OTPMsg,
+	}
+
+	tplData := OTPTplData {
+		Username: "Agus",
+		OTP: "1234",
+	}
+
+	err := client.Send(ctx, p, tplData)
 	if err != nil {
 		e := err.(*errs.Error)
 		t.Fatalf("success err is not nil: %v", e.Err)
@@ -40,51 +52,123 @@ func TestSendMany(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
 
-	users := []struct {
-		subject string
-		body string
-		to string
-	}{
-		{"Toni", "Tester", "toni.tester@example.com"},
-		{"Tina", "Tester", "tina.tester@example.com"},
-		{"John", "Doe", "john.doe@example.com"},
+	params := []Param {
+		{
+			Name: "Toni",	
+			Email: "toni.tester@example.com",
+			Subject: "OTP",
+		},
+
+		{
+			Name: "Tina",	
+			Email: "tina.tester@example.com",
+			Subject: "OTP",
+		},
+
+		{
+			Name: "John",	
+			Email: "john.tester@example.com",
+			Subject: "OTP",
+		},
 	}
 
-	for _, user := range users {
-		if err := client.Send(ctx, "info@gmail.com", user.to, user.subject, user.body); err != nil {
+	tplData := []any {
+		OTPTplData{
+			Username: "Toni",
+			OTP: "1234",
+		},
+
+		OTPTplData {
+			Username: "Tina",
+			OTP: "4567",
+		},
+
+		OTPTplData {
+			Username: "John",
+			OTP: "0928",
+		},
+	}
+
+	for i := 0; i < len(params); i++ {
+		if err := client.Send(ctx, params[i], tplData[i]); err != nil {
 			e := err.(*errs.Error)
-			t.Fatalf("success err is not nil: %v", e.Err)
+			t.Fatalf("success err is not nil: %v", e.Err)	
 		}
 	}
-}
-
-func TestFail(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
-	defer cancel()
-
-	t.Run("empty from", func(t *testing.T) {
-		err := client.Send(ctx, "", "foo@gmail.com", "Hello", "World")
-		if err == nil {
-			t.Fatal("send from must fail")
-		}
-	})
-
-	t.Run("empty to", func(t *testing.T) {
-		err := client.Send(ctx, "info@gmail.com", "", "Hello", "World")
-		if err == nil {
-			t.Fatal("send to must fail")
-		}
-	})
 }
 
 func TestContextCancellation(t *testing.T) {
-	c, cancelFunc := context.WithTimeout(context.Background(), time.Microsecond * 1)
-	defer cancelFunc()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	defer cancel()
 
-	err := client.Send(c, "info@gmail.com", "foo@gmail.com", "Hello", "World")
-	if err == nil {
-		t.Fatalf("context cancellation not hit, error is %v", err)
+	p := Param {
+		Name: "Foo",
+		Email: "foo@gmail.com",
+		Subject: "Hello",
+		TemplateTypes: OTPMsg,
 	}
+
+	tplData := OTPTplData {
+		Username: "Agus",
+		OTP: "1234",
+	}
+
+	err := client.Send(ctx, p, tplData)
+	if err == nil {
+		t.Fatal("context deadline not hit")
+	}
+}
+
+func TestFailParam(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	defer cancel()
+
+	t.Run("mismatch type", func(t *testing.T) {
+		param := Param{
+			Name: "foo",
+			Email: "foo@gmail.com",
+			Subject: "Fooo",
+			TemplateTypes: OTPMsg,
+		}
+
+		tplData := RecoverPasswdTplData {
+			Username: "bar",
+			GeneratedLink: "localhost:something",
+		}
+
+		if err := client.Send(ctx, param, tplData); err == nil {
+			t.Fatal("should not be nil")
+		}
+	})
+
+	t.Run("empty param", func(t *testing.T) {
+		tplData := RecoverPasswdTplData {
+			Username: "bar",
+			GeneratedLink: "localhost:something",
+		}
+
+		if err := client.Send(ctx, Param{}, tplData); err == nil {
+			t.Fatal("empty param should result error")
+		}
+	})
+
+	t.Run("unknown msg tpl type", func(t *testing.T) {
+		param := Param{
+			Name: "foo",
+			Email: "foo@gmail.com",
+			Subject: "Fooo",
+			TemplateTypes: MsgType(10),
+		}
+
+		tplData := OTPTplData {
+			Username: "Agus",
+			OTP: "1234",
+		}
+
+		if err := client.Send(ctx, param, tplData); err == nil {
+			t.Fatal("unknown type should result error")
+		}
+	})
 }
 
 func setup() error {
@@ -119,6 +203,6 @@ func setup() error {
 		return err
 	}
 
-	client, err = NewClient(hostIP, port, "info@gmail.com", "", 20 * time.Second)
+	client, err = NewClient(hostIP, port, "info@gmail.com", "", "Guwu", "info@gmail.com")
 	return err
 }
