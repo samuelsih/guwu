@@ -16,9 +16,9 @@ var (
 	once   sync.Once
 )
 
-type Pair[T any] struct {
+type P struct {
 	Key string
-	Value T
+	Value any
 }
 
 func SetMode(debugMode bool) {
@@ -51,7 +51,7 @@ func Debug(msg string) {
 	logger.Debug().Msg(msg)
 }
 
-func Debugs(pairs ...Pair[any]) {
+func Debugs(pairs ...P) {
 	dict := zerolog.Dict()
 	for _, pair := range pairs {
 		dict.Interface(pair.Key, pair.Value)
