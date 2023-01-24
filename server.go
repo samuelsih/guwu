@@ -62,7 +62,7 @@ func RunServer(router *chi.Mux, addr string, dependencies Dependencies) {
 		},
 	})
 
-	logger.SysInfo("Serve on localhost %s", addr)
+	logger.SysInfof("Serve on localhost %s", addr)
 
 	err := server.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
@@ -91,7 +91,7 @@ func listenOnShutdown(server *http.Server, quit chan os.Signal, done chan struct
 			opName := opName
 			op := op
 
-			logger.SysInfo("on operation %s", opName)
+			logger.SysInfof("on operation %s", opName)
 
 			go func ()  {
 				defer wg.Done()
@@ -101,7 +101,7 @@ func listenOnShutdown(server *http.Server, quit chan os.Signal, done chan struct
 					return
 				}	
 
-				logger.SysInfo("operation %s has success", opName) 
+				logger.SysInfof("operation %s has success", opName) 
 			}()
 		}
 

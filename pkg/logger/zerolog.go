@@ -50,7 +50,13 @@ func Err(err error) {
 	logger.Error().Int("status", errs.GetKind(err)).Str("trace", strings.Join(ops, "->")).Msg(err.Error())
 }
 
-func Debug(msg string, args ...any) {
+func Debug(msg string) {
+	if debug {
+		logger.Debug().Msg(msg)
+	}
+}
+
+func Debugf(msg string, args ...any) {
 	if debug {
 		logger.Debug().Msgf(msg, args)
 	}
@@ -67,7 +73,11 @@ func Debugs(pairs ...P) {
 	}
 }
 
-func SysInfo(msg string, args ...any) {
+func SysInfo(msg string) {
+	logger.Info().Msgf(msg)
+}
+
+func SysInfof(msg string, args ...any) {
 	logger.Info().Msgf(msg, args)
 }
 
