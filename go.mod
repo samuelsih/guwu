@@ -14,6 +14,7 @@ require (
 	github.com/rueian/rueidis v0.0.90
 	github.com/testcontainers/testcontainers-go v0.17.0
 	github.com/wneessen/go-mail v0.3.8
+	github.com/xlzd/gotp v0.1.0
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 )
 
@@ -42,7 +43,6 @@ require (
 	github.com/opencontainers/runc v1.1.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	github.com/xlzd/gotp v0.1.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
