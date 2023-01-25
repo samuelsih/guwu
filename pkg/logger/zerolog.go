@@ -14,11 +14,11 @@ import (
 var (
 	logger zerolog.Logger
 	once   sync.Once
-	debug bool
+	debug  bool
 )
 
 type P struct {
-	Key string
+	Key   string
 	Value any
 }
 
@@ -62,7 +62,7 @@ func Debugs(pairs ...P) {
 		for _, pair := range pairs {
 			dict.Interface(pair.Key, pair.Value)
 		}
-	
+
 		logger.Debug().Dict("data", dict)
 	}
 }

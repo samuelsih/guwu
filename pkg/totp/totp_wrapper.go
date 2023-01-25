@@ -8,7 +8,7 @@ import (
 
 type TOTP struct {
 	t *gotp.TOTP
-} 
+}
 
 func New(key string, duration, digits int) TOTP {
 	return TOTP{
@@ -20,6 +20,6 @@ func (totp TOTP) Generate() (string, int64) {
 	return totp.t.NowWithExpiration()
 }
 
-func(totp TOTP) Verify(otpCode string) bool {
+func (totp TOTP) Verify(otpCode string) bool {
 	return totp.t.Verify(otpCode, time.Now().Unix())
 }

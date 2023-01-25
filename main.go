@@ -43,7 +43,7 @@ func main() {
 	if redisPassword == "" {
 		redisPassword = ""
 	}
-	
+
 	db := config.ConnectPostgres(dsn)
 	securer.SetSecret(secretKey)
 	redisDB := config.NewRedis(redisHost, redisPassword)
@@ -60,8 +60,8 @@ func main() {
 		}
 	}
 
-	deps := Dependencies {
-		DB: db,
+	deps := Dependencies{
+		DB:    db,
 		Redis: redisDB,
 	}
 

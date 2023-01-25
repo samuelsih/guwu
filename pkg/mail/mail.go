@@ -22,30 +22,30 @@ var (
 )
 
 const (
-	OTPMsg MsgType = iota 
-	RecoverPasswdMsg 
+	OTPMsg MsgType = iota
+	RecoverPasswdMsg
 )
 
 type Client struct {
-	client *mail.Client
-	senderName string
+	client      *mail.Client
+	senderName  string
 	senderEmail string
 }
 
 type Param struct {
-	Name string
-	Email string
-	Subject string
+	Name          string
+	Email         string
+	Subject       string
 	TemplateTypes MsgType
 }
 
 type OTPTplData struct {
 	Username string
-	OTP string
+	OTP      string
 }
 
 type RecoverPasswdTplData struct {
-	Username string
+	Username      string
 	GeneratedLink string
 }
 
@@ -67,7 +67,7 @@ func NewClient(host string, port int, username, password, senderName, senderEmai
 	return Client{client: client, senderName: senderName, senderEmail: senderEmail}, nil
 }
 
-func(c Client) Send(ctx context.Context, param Param, tplData any) error {
+func (c Client) Send(ctx context.Context, param Param, tplData any) error {
 	const op = errs.Op("mail.Send")
 
 	htpl, txtpl, err := getTemplateFromType(param.TemplateTypes)
@@ -117,7 +117,7 @@ func getTemplateFromType(msgType MsgType) (*ht.Template, *tt.Template, error) {
 		if err != nil {
 			return nil, nil, errs.E(op, errs.KindUnexpected, err, "unexpected error generating html")
 		}
-	
+
 		txtpl, err := tt.New("texttpl").Parse(otpTxt)
 		if err != nil {
 			return nil, nil, errs.E(op, errs.KindUnexpected, err, "unexpected error generating txt")

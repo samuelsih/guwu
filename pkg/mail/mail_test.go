@@ -26,19 +26,19 @@ func TestMain(m *testing.M) {
 }
 
 func TestSend(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	p := Param {
-		Name: "Foo",
-		Email: "foo@gmail.com",
-		Subject: "Hello",
+	p := Param{
+		Name:          "Foo",
+		Email:         "foo@gmail.com",
+		Subject:       "Hello",
 		TemplateTypes: OTPMsg,
 	}
 
-	tplData := OTPTplData {
+	tplData := OTPTplData{
 		Username: "Agus",
-		OTP: "1234",
+		OTP:      "1234",
 	}
 
 	err := client.Send(ctx, p, tplData)
@@ -49,50 +49,50 @@ func TestSend(t *testing.T) {
 }
 
 func TestSendMany(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	params := []Param {
+	params := []Param{
 		{
-			Name: "Toni",	
-			Email: "toni.tester@example.com",
+			Name:    "Toni",
+			Email:   "toni.tester@example.com",
 			Subject: "OTP",
 		},
 
 		{
-			Name: "Tina",	
-			Email: "tina.tester@example.com",
+			Name:    "Tina",
+			Email:   "tina.tester@example.com",
 			Subject: "OTP",
 		},
 
 		{
-			Name: "John",	
-			Email: "john.tester@example.com",
+			Name:    "John",
+			Email:   "john.tester@example.com",
 			Subject: "OTP",
 		},
 	}
 
-	tplData := []any {
+	tplData := []any{
 		OTPTplData{
 			Username: "Toni",
-			OTP: "1234",
+			OTP:      "1234",
 		},
 
-		OTPTplData {
+		OTPTplData{
 			Username: "Tina",
-			OTP: "4567",
+			OTP:      "4567",
 		},
 
-		OTPTplData {
+		OTPTplData{
 			Username: "John",
-			OTP: "0928",
+			OTP:      "0928",
 		},
 	}
 
 	for i := 0; i < len(params); i++ {
 		if err := client.Send(ctx, params[i], tplData[i]); err != nil {
 			e := err.(*errs.Error)
-			t.Fatalf("success err is not nil: %v", e.Err)	
+			t.Fatalf("success err is not nil: %v", e.Err)
 		}
 	}
 }
@@ -101,16 +101,16 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 	defer cancel()
 
-	p := Param {
-		Name: "Foo",
-		Email: "foo@gmail.com",
-		Subject: "Hello",
+	p := Param{
+		Name:          "Foo",
+		Email:         "foo@gmail.com",
+		Subject:       "Hello",
 		TemplateTypes: OTPMsg,
 	}
 
-	tplData := OTPTplData {
+	tplData := OTPTplData{
 		Username: "Agus",
-		OTP: "1234",
+		OTP:      "1234",
 	}
 
 	err := client.Send(ctx, p, tplData)
@@ -120,19 +120,19 @@ func TestContextCancellation(t *testing.T) {
 }
 
 func TestFailParam(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	t.Run("mismatch type", func(t *testing.T) {
 		param := Param{
-			Name: "foo",
-			Email: "foo@gmail.com",
-			Subject: "Fooo",
+			Name:          "foo",
+			Email:         "foo@gmail.com",
+			Subject:       "Fooo",
 			TemplateTypes: OTPMsg,
 		}
 
-		tplData := RecoverPasswdTplData {
-			Username: "bar",
+		tplData := RecoverPasswdTplData{
+			Username:      "bar",
 			GeneratedLink: "localhost:something",
 		}
 
@@ -142,8 +142,8 @@ func TestFailParam(t *testing.T) {
 	})
 
 	t.Run("empty param", func(t *testing.T) {
-		tplData := RecoverPasswdTplData {
-			Username: "bar",
+		tplData := RecoverPasswdTplData{
+			Username:      "bar",
 			GeneratedLink: "localhost:something",
 		}
 
@@ -154,15 +154,15 @@ func TestFailParam(t *testing.T) {
 
 	t.Run("unknown msg tpl type", func(t *testing.T) {
 		param := Param{
-			Name: "foo",
-			Email: "foo@gmail.com",
-			Subject: "Fooo",
+			Name:          "foo",
+			Email:         "foo@gmail.com",
+			Subject:       "Fooo",
 			TemplateTypes: MsgType(10),
 		}
 
-		tplData := OTPTplData {
+		tplData := OTPTplData{
 			Username: "Agus",
-			OTP: "1234",
+			OTP:      "1234",
 		}
 
 		if err := client.Send(ctx, param, tplData); err == nil {

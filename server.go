@@ -17,37 +17,37 @@ import (
 )
 
 const (
-	idleTimeout  = 1 * time.Minute
-	readTimeout  = 10 * time.Second
-	writeTimeout = 30 * time.Second
-	ctxTimeout   = 5 * time.Second
+	idleTimeout     = 1 * time.Minute
+	readTimeout     = 10 * time.Second
+	writeTimeout    = 30 * time.Second
+	ctxTimeout      = 5 * time.Second
 	shutdownTimeout = 30 * time.Second
 )
 
-type shutdownFunc func(ctx context.Context) error 
+type shutdownFunc func(ctx context.Context) error
 
 type Dependencies struct {
-	DB *sqlx.DB
+	DB    *sqlx.DB
 	Redis rueidis.Client
 	// many more will come
 }
 
 func RunServer(router *chi.Mux, addr string, dependencies Dependencies) {
-	server := http.Server {
+	server := http.Server{
 		Addr:         addr,
 		Handler:      router,
 		IdleTimeout:  idleTimeout,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
-	}	
+	}
 
 	loadRoutes(router, dependencies)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	done := make(chan struct{})
-	
-	listenOnShutdown(&server, quit, done, map[string]shutdownFunc {
+
+	listenOnShutdown(&server, quit, done, map[string]shutdownFunc{
 		"shutdown server": func(ctx context.Context) error {
 			return server.Shutdown(ctx)
 		},
@@ -70,7 +70,7 @@ func RunServer(router *chi.Mux, addr string, dependencies Dependencies) {
 		return
 	}
 
-	<- done
+	<-done
 	close(done)
 	close(quit)
 	logger.SysInfo("shutdown success")
@@ -80,12 +80,12 @@ func listenOnShutdown(server *http.Server, quit chan os.Signal, done chan struct
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	var wg sync.WaitGroup
-	
-	go func ()  {
+
+	go func() {
 		<-quit
 
 		logger.SysInfo("shutting down app")
-	
+
 		for opName, op := range ops {
 			wg.Add(1)
 			opName := opName
@@ -93,15 +93,15 @@ func listenOnShutdown(server *http.Server, quit chan os.Signal, done chan struct
 
 			logger.SysInfo("on operation " + opName)
 
-			go func ()  {
+			go func() {
 				defer wg.Done()
 
 				if err := op(ctx); err != nil {
 					logger.Errorf("error on %s: %v", opName, err)
 					return
-				}	
+				}
 
-				logger.SysInfo("operation " + opName + "has success") 
+				logger.SysInfo("operation " + opName + "has success")
 			}()
 		}
 

@@ -36,11 +36,11 @@ func loadRoutes(r *chi.Mux, deps Dependencies) {
 }
 
 func authRoutes(r *chi.Mux, db *sqlx.DB, rdb *redis.Client) {
-	deps := auth.Deps {
-		DB: db,
-		CreateSession: rdb.SetJSON,
+	deps := auth.Deps{
+		DB:             db,
+		CreateSession:  rdb.SetJSON,
 		DestroySession: rdb.Destroy,
-	}	
+	}
 
 	r.Post("/register", pr.Post(deps.Register, pr.OnlyDecodeOpts))
 	r.Post("/login", pr.Post(deps.Login, pr.SetSessionWithDecodeOpts))

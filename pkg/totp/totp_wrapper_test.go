@@ -12,7 +12,7 @@ func TestTOTP(t *testing.T) {
 
 	if !totp.Verify(code) {
 		t.Fatal("duration error")
-	} 
+	}
 }
 
 func TestTOTP_Fail(t *testing.T) {
@@ -23,5 +23,5 @@ func TestTOTP_Fail(t *testing.T) {
 
 	if totp.Verify(code) {
 		t.Fatal("duration fail error")
-	} 
+	}
 }
