@@ -145,7 +145,7 @@ func setup() error {
 		return fmt.Errorf("db is nil")
 	}
 
-	client = *NewClient(db, "test_")
+	client = *NewClient(db)
 
 	return nil
 }

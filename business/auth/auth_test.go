@@ -14,6 +14,7 @@ import (
 	"github.com/samuelsih/guwu/config"
 	"github.com/samuelsih/guwu/model"
 	"github.com/samuelsih/guwu/pkg/errs"
+	"github.com/samuelsih/guwu/pkg/mail"
 	"github.com/samuelsih/guwu/pkg/redis"
 	"github.com/samuelsih/guwu/pkg/securer"
 	"github.com/testcontainers/testcontainers-go"
@@ -32,6 +33,10 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
+	if testDB == nil {
+		log.Fatal("testDB is nil")
+	}
+
 	code := m.Run()
 
 	if err := cleanup(); err != nil {
@@ -42,7 +47,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRegister(t *testing.T) {
-	deps := Deps{
+	deps := Deps {
 		DB: testDB,
 	}
 
@@ -103,7 +108,14 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("RegisterMultipleAcc", func(t *testing.T) {
-		in := deps.Register(context.Background(), RegisterInput{
+		d := Deps{
+			DB: testDB,
+			SendEmail: func(ctx context.Context, param mail.Param, data any) error {
+				return nil
+			},
+		}
+
+		in := d.Register(context.Background(), RegisterInput{
 			Email:    "testing@gmail.com",
 			Username: "heavenlybrush",
 			Password: "Heaven123!",
@@ -124,7 +136,7 @@ func TestRegister(t *testing.T) {
 			StatusCode: 400,
 		}}
 
-		got := deps.Register(context.Background(), input, business.CommonInput{})
+		got := d.Register(context.Background(), input, business.CommonInput{})
 
 		if got.StatusCode != expected.StatusCode || !strings.Contains(got.Msg, "already taken") {
 			t.Fatalf("TestRegister.RegisterEmptyUsername - expected %v, got %v", expected, got)
@@ -200,7 +212,7 @@ func TestLogin(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		successDeps := Deps{
 			DB: testDB,
-			CreateSession: func(ctx context.Context, key string, in any, time int64) error {
+			Store: func(ctx context.Context, key string, in any, time int64) error {
 				return nil
 			},
 		}
@@ -214,6 +226,7 @@ func TestLogin(t *testing.T) {
 			business.CommonInput{})
 
 		if in.StatusCode != 200 {
+			t.Log("status code is not 200")
 			t.Fatalf("TestLogin.Success - in should be 200, got %v", in)
 		}
 
@@ -239,7 +252,7 @@ func TestLogin(t *testing.T) {
 	t.Run("SuccessButErrorOnSession", func(t *testing.T) {
 		successDeps := Deps{
 			DB: testDB,
-			CreateSession: func(ctx context.Context, key string, in any, time int64) error {
+			Store: func(ctx context.Context, key string, in any, time int64) error {
 				return errs.E(errs.Op("some_op"), errs.KindUnexpected, errors.New("error creating session"), "internal error")
 			},
 		}
@@ -295,7 +308,7 @@ func TestLogout(t *testing.T) {
 
 	t.Run("UnknownSessionID", func(t *testing.T) {
 		deps := Deps{
-			DestroySession: func(ctx context.Context, sessionID string) error {
+			Destroy: func(ctx context.Context, sessionID string) error {
 				return errs.E(errs.Op("some_op"), errs.KindBadRequest, err, "unknown input")
 			},
 		}
@@ -311,7 +324,7 @@ func TestLogout(t *testing.T) {
 
 	t.Run("InternalErr", func(t *testing.T) {
 		internalErrDeps := Deps{
-			DestroySession: func(ctx context.Context, sessionID string) error {
+			Destroy: func(ctx context.Context, sessionID string) error {
 				return errs.E(errs.Op("some_op"), errs.KindUnexpected, err, "unknown input")
 			},
 		}
@@ -327,7 +340,7 @@ func TestLogout(t *testing.T) {
 
 	t.Run("Success", func(t *testing.T) {
 		deps := Deps{
-			DestroySession: func(ctx context.Context, sessionID string) error {
+			Destroy: func(ctx context.Context, sessionID string) error {
 				return nil
 			},
 		}

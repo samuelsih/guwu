@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rueian/rueidis"
 	"github.com/samuelsih/guwu/pkg/logger"
+	"github.com/samuelsih/guwu/pkg/mail"
 )
 
 const (
@@ -29,6 +30,7 @@ type shutdownFunc func(ctx context.Context) error
 type Dependencies struct {
 	DB    *sqlx.DB
 	Redis rueidis.Client
+	Mailer mail.Client
 	// many more will come
 }
 

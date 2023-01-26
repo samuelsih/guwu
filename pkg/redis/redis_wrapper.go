@@ -19,10 +19,9 @@ var (
 
 type Client struct {
 	Pool   rueidis.Client
-	Prefix string
 }
 
-func NewClient(db rueidis.Client, prefix string) *Client {
+func NewClient(db rueidis.Client) *Client {
 	return &Client{
 		Pool: db,
 	}
@@ -30,7 +29,7 @@ func NewClient(db rueidis.Client, prefix string) *Client {
 
 func (r *Client) Get(ctx context.Context, key string) (string, error) {
 	const op = errs.Op("redis_wrapper.Get")
-	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
+	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(key).Build()).ToString()
 
 	if err != nil && !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
 		return "", errs.E(op, errs.KindUnexpected, err, "internal error")
@@ -42,7 +41,7 @@ func (r *Client) Get(ctx context.Context, key string) (string, error) {
 func (r *Client) Set(ctx context.Context, key, value string, time int64) error {
 	const op = errs.Op("redis_wrapper.Set")
 
-	err := r.Pool.Do(ctx, r.Pool.B().Setex().Key(r.Prefix+key).Seconds(time).Value(value).Build()).Error()
+	err := r.Pool.Do(ctx, r.Pool.B().Setex().Key(key).Seconds(time).Value(value).Build()).Error()
 
 	if err != nil {
 		return errs.E(op, errs.KindUnexpected, err, "internal error")
@@ -54,7 +53,7 @@ func (r *Client) Set(ctx context.Context, key, value string, time int64) error {
 func (r *Client) GetJSON(ctx context.Context, key string, dst any) error {
 	const op = errs.Op("redis_wrapper.GetJSON")
 
-	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(r.Prefix+key).Build()).ToString()
+	result, err := r.Pool.Do(ctx, r.Pool.B().Get().Key(key).Build()).ToString()
 	if err != nil {
 		if !(err.Error() == `redis nil message` || err.Error() == `redis: nil`) {
 			return errs.E(op, errs.KindUnexpected, err, "internal error")
@@ -77,7 +76,7 @@ func (r *Client) SetJSON(ctx context.Context, key string, value any, time int64)
 		return ErrInvalidUnmarshal
 	}
 
-	err = r.Pool.Do(ctx, r.Pool.B().Setex().Key(r.Prefix+key).Seconds(time).Value(string(data)).Build()).Error()
+	err = r.Pool.Do(ctx, r.Pool.B().Setex().Key(key).Seconds(time).Value(string(data)).Build()).Error()
 	if err != nil {
 		return ErrInternal
 	}
@@ -86,7 +85,7 @@ func (r *Client) SetJSON(ctx context.Context, key string, value any, time int64)
 }
 
 func (r *Client) Destroy(ctx context.Context, key string) error {
-	deleted, err := r.Pool.Do(ctx, r.Pool.B().Del().Key(r.Prefix+key).Build()).ToInt64()
+	deleted, err := r.Pool.Do(ctx, r.Pool.B().Del().Key(key).Build()).ToInt64()
 	if err != nil {
 		return ErrInternal
 	}

@@ -8,16 +8,26 @@ import (
 	"github.com/samuelsih/guwu/business"
 	"github.com/samuelsih/guwu/model"
 	"github.com/samuelsih/guwu/pkg/errs"
+	"github.com/samuelsih/guwu/pkg/mail"
+	"github.com/samuelsih/guwu/pkg/passcode"
 	"github.com/samuelsih/guwu/pkg/securer"
 )
 
-const SESS_MAX_AGE = 60 * 60 * 24
+const (
+	SESS_MAX_AGE = 60 * 60 * 24
+	OTP_DURATION = 60 * 5
+	SESS_PREFIX = "sessionid_"
+	OTP_PREFIX = "otp_"
+
+)
 
 type Deps struct {
 	DB *sqlx.DB
 
-	CreateSession  func(ctx context.Context, key string, in any, time int64) error
-	DestroySession func(ctx context.Context, sessionID string) error
+	Store  func(ctx context.Context, key string, in any, time int64) error
+	Destroy func(ctx context.Context, sessionID string) error
+
+	SendEmail func(ctx context.Context, param mail.Param, data any) error
 }
 
 type LoginInput struct {
@@ -56,7 +66,7 @@ func (d *Deps) Login(ctx context.Context, in LoginInput, commonIn business.Commo
 
 	sessionID := xid.New().String()
 
-	err = d.CreateSession(ctx, sessionID, user, int64(SESS_MAX_AGE))
+	err = d.Store(ctx, sessionID, user, int64(SESS_MAX_AGE))
 	if err != nil {
 		out.SetError(err)
 		return out
@@ -106,6 +116,31 @@ func (d *Deps) Register(ctx context.Context, in RegisterInput, commonIn business
 		return out
 	}
 
+	otp := passcode.Generate(6)
+	err = d.Store(ctx, (OTP_PREFIX + in.Email), otp, OTP_DURATION)
+	if err != nil {
+		out.SetError(err)
+		return out
+	}
+
+	param := mail.Param {
+		Name: in.Username,
+		Email: in.Email,
+		Subject: "Email Verification",
+		TemplateTypes: mail.OTPMsg,
+	}
+
+	data := mail.OTPTplData {
+		Username: in.Username,
+		OTP: otp,
+	}
+
+	err = d.SendEmail(ctx, param, data)
+	if err != nil {
+		out.SetError(err)
+		return out
+	}
+
 	out.SetOK()
 	return out
 }
@@ -128,7 +163,7 @@ func (d *Deps) Logout(ctx context.Context, in business.CommonInput) LogoutOutput
 		return out
 	}
 
-	err = d.DestroySession(ctx, string(sessID))
+	err = d.Destroy(ctx, string(sessID))
 
 	if err != nil {
 		out.SetError(err)

@@ -71,6 +71,10 @@ func SysInfo(msg string) {
 	logger.Info().Msgf(msg)
 }
 
+func SysInfof(str string, args ...any) {
+	logger.Info().Msgf(str, args...)
+}
+
 func SysErr(err error) {
 	logger.Error().Stack().Err(err).Msg("")
 }

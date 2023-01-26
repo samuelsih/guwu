@@ -11,6 +11,7 @@ import (
 	"github.com/samuelsih/guwu/business/auth"
 	"github.com/samuelsih/guwu/business/follow"
 	"github.com/samuelsih/guwu/business/health"
+	"github.com/samuelsih/guwu/pkg/mail"
 	"github.com/samuelsih/guwu/pkg/redis"
 	"github.com/samuelsih/guwu/pkg/response"
 	pr "github.com/samuelsih/guwu/presentation"
@@ -25,9 +26,9 @@ func loadRoutes(r *chi.Mux, deps Dependencies) {
 
 	r.Use(middleware.Recoverer)
 
-	redisClient := redis.NewClient(deps.Redis, "sessionid_")
+	redisClient := redis.NewClient(deps.Redis)
 
-	authRoutes(r, deps.DB, redisClient)
+	authRoutes(r, deps.DB, redisClient, deps.Mailer)
 	followHandlers(r, deps.DB, redisClient)
 
 	healthCheckHandlers(r, deps)
@@ -35,11 +36,12 @@ func loadRoutes(r *chi.Mux, deps Dependencies) {
 	methodNotAllowed(r)
 }
 
-func authRoutes(r *chi.Mux, db *sqlx.DB, rdb *redis.Client) {
+func authRoutes(r *chi.Mux, db *sqlx.DB, rdb *redis.Client, mailer mail.Client) {
 	deps := auth.Deps{
 		DB:             db,
-		CreateSession:  rdb.SetJSON,
-		DestroySession: rdb.Destroy,
+		Store:  rdb.SetJSON,
+		Destroy: rdb.Destroy,
+		SendEmail: mailer.Send,
 	}
 
 	r.Post("/register", pr.Post(deps.Register, pr.OnlyDecodeOpts))
