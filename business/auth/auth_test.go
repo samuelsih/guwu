@@ -113,6 +113,9 @@ func TestRegister(t *testing.T) {
 			SendEmail: func(ctx context.Context, param mail.Param, data any) error {
 				return nil
 			},
+			Store: func(ctx context.Context, key string, in any, time int64) error {
+				return nil
+			},
 		}
 
 		in := d.Register(context.Background(), RegisterInput{
@@ -215,6 +218,9 @@ func TestLogin(t *testing.T) {
 			Store: func(ctx context.Context, key string, in any, time int64) error {
 				return nil
 			},
+			SendEmail: func(ctx context.Context, param mail.Param, data any) error {
+				return nil
+			},
 		}
 
 		in := successDeps.Register(context.Background(), RegisterInput{
@@ -253,7 +259,10 @@ func TestLogin(t *testing.T) {
 		successDeps := Deps{
 			DB: testDB,
 			Store: func(ctx context.Context, key string, in any, time int64) error {
-				return errs.E(errs.Op("some_op"), errs.KindUnexpected, errors.New("error creating session"), "internal error")
+				return nil
+			},
+			SendEmail: func(ctx context.Context, param mail.Param, data any) error {
+				return nil
 			},
 		}
 
@@ -268,6 +277,13 @@ func TestLogin(t *testing.T) {
 			t.Fatalf("TestLogin.Success - in should be 200, got %v", in)
 		}
 
+		errorDeps := Deps{
+			DB: testDB,
+			Store: func(ctx context.Context, key string, in any, time int64) error {
+				return errs.E(errs.Op("some_op"), errs.KindUnexpected, errors.New("error creating session"), "internal error")
+			},
+		}
+
 		input := LoginInput{
 			Email:    "andre@gmail.com",
 			Password: "Andre123!",
@@ -280,7 +296,7 @@ func TestLogin(t *testing.T) {
 			},
 		}
 
-		got := successDeps.Login(context.Background(), input, business.CommonInput{})
+		got := errorDeps.Login(context.Background(), input, business.CommonInput{})
 
 		if expected.StatusCode != got.StatusCode || expected.Msg != got.Msg {
 			t.Fatalf("TestLogin.SuccessButErrorOnSession - expected %v, got %v", expected, got)
