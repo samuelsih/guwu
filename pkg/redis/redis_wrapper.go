@@ -59,7 +59,7 @@ func (r *Client) GetJSON(ctx context.Context, key string, dst any) error {
 			return errs.E(op, errs.KindUnexpected, err, "internal error")
 		}
 
-		return errs.E(op, errs.KindUnexpected, err, "unknown input")
+		return errs.E(op, errs.KindBadRequest, err, "unknown input")
 	}
 
 	err = json.Unmarshal([]byte(result), dst)

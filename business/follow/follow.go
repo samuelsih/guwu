@@ -27,6 +27,11 @@ func (d *Deps) Follow(ctx context.Context, in FollowIn, common business.CommonIn
 	var out FollowOut
 	var user model.User
 
+	if common.SessionID == "" {
+		out.RawError(403, "Unauthenticated")
+		return out
+	}
+
 	sessionID, err := securer.Decrypt(common.SessionID)
 	if err != nil {
 		out.SetError(err)

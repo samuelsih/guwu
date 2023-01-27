@@ -15,7 +15,7 @@ import (
 
 const (
 	SESS_MAX_AGE = 60 * 60 * 24
-	OTP_DURATION = 60 * 5
+	OTP_DURATION int64 = 60 * 5
 	SESS_PREFIX = "sessionid_"
 	OTP_PREFIX = "otp_"
 
