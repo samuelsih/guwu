@@ -54,6 +54,41 @@ func (d *Deps) Follow(ctx context.Context, in FollowIn, common business.CommonIn
 	return out
 }
 
-func (d *Deps) Unfollow(ctx context.Context) {
+type UnfollowIn struct {
+	UserID string `json:"user_id"`
+}
 
+type UnfollowOut struct {
+	business.CommonResponse
+}
+
+func (d *Deps) Unfollow(ctx context.Context, in FollowIn, common business.CommonInput) UnfollowOut {
+	var out UnfollowOut
+	var user model.User
+
+	if common.SessionID == "" {
+		out.RawError(403, "Unauthenticated")
+		return out
+	}
+
+	sessionID, err := securer.Decrypt(common.SessionID)
+	if err != nil {
+		out.SetError(err)
+		return out
+	}
+
+	err = d.GetUserSession(ctx, string(sessionID), &user)
+	if err != nil {
+		out.SetError(err)
+		return out
+	}
+
+	err = model.UnfollowUser(ctx, d.DB, user.ID, in.UserID)
+	if err != nil {
+		out.SetError(err)
+		return out
+	}
+
+	out.SetOK()
+	return out
 }
