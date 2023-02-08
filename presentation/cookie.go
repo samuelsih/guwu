@@ -14,10 +14,10 @@ func getSessionCookie(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
-func setSessionCookie(w http.ResponseWriter, value string, maxAge int) {
+func setSessionCookie(w http.ResponseWriter, cookieName, cookieValue string, maxAge int) {
 	http.SetCookie(w, &http.Cookie{
-		Name:     "sid",
-		Value:    value,
+		Name:     cookieName,
+		Value:    cookieValue,
 		MaxAge:   maxAge,
 		SameSite: http.SameSiteLaxMode,
 	})

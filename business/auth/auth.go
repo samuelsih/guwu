@@ -14,18 +14,18 @@ import (
 )
 
 const (
-	SESS_MAX_AGE = 60 * 60 * 24
+	SESS_MAX_AGE       = 60 * 60 * 24
 	OTP_DURATION int64 = 60 * 5
-	SESS_PREFIX = "sessionid_"
-	OTP_PREFIX = "otp_"
-
+	SESS_PREFIX        = "sessionid_"
+	OTP_PREFIX         = "otp_"
 )
 
 type Deps struct {
 	DB *sqlx.DB
 
-	Store  func(ctx context.Context, key string, in any, time int64) error
+	Store   func(ctx context.Context, key string, in any, time int64) error
 	Destroy func(ctx context.Context, sessionID string) error
+	Get     func(ctx context.Context, key string, dst any) error
 
 	SendEmail func(ctx context.Context, param mail.Param, data any) error
 }
@@ -123,16 +123,16 @@ func (d *Deps) Register(ctx context.Context, in RegisterInput, commonIn business
 		return out
 	}
 
-	param := mail.Param {
-		Name: in.Username,
-		Email: in.Email,
-		Subject: "Email Verification",
+	param := mail.Param{
+		Name:          in.Username,
+		Email:         in.Email,
+		Subject:       "Email Verification",
 		TemplateTypes: mail.OTPMsg,
 	}
 
-	data := mail.OTPTplData {
+	data := mail.OTPTplData{
 		Username: in.Username,
-		OTP: otp,
+		OTP:      otp,
 	}
 
 	err = d.SendEmail(ctx, param, data)
@@ -174,5 +174,40 @@ func (d *Deps) Logout(ctx context.Context, in business.CommonInput) LogoutOutput
 	out.SessionMaxAge = -1
 	out.SetOK()
 
+	return out
+}
+
+type PersonalOut struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	business.CommonResponse
+}
+
+func (d *Deps) WhoAmI(ctx context.Context, in business.CommonInput) PersonalOut {
+	var out PersonalOut
+
+	if in.SessionID == "" {
+		out.RawError(400, "session id is required")
+		return out
+	}
+
+	sessID, err := securer.Decrypt(in.SessionID)
+	if err != nil {
+		out.SetError(err)
+		return out
+	}
+
+	var user model.User
+
+	err = d.Get(ctx, string(sessID), &user)
+	if err != nil {
+		out.SetError(err)
+		return out
+	}
+
+	out.Username = user.Username
+	out.Email = user.Email
+
+	out.SetOK()
 	return out
 }

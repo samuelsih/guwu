@@ -19,7 +19,7 @@ import (
 
 func loadRoutes(r *chi.Mux, deps Dependencies) {
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 	}))
@@ -38,24 +38,26 @@ func loadRoutes(r *chi.Mux, deps Dependencies) {
 
 func authRoutes(r *chi.Mux, db *sqlx.DB, rdb *redis.Client, mailer mail.Client) {
 	deps := auth.Deps{
-		DB:             db,
-		Store:  rdb.SetJSON,
-		Destroy: rdb.Destroy,
+		DB:        db,
+		Store:     rdb.SetJSON,
+		Destroy:   rdb.Destroy,
 		SendEmail: mailer.Send,
+		Get:       rdb.GetJSON,
 	}
 
 	r.Post("/register", pr.Post(deps.Register, pr.OnlyDecodeOpts))
 	r.Post("/login", pr.Post(deps.Login, pr.SetSessionWithDecodeOpts))
 	r.Delete("/logout", pr.Delete(deps.Logout, pr.GetterSetterSessionOpts))
+	r.Get("/whoami", pr.Get(deps.WhoAmI, pr.GetSessionOnly))
 }
 
 func followHandlers(r *chi.Mux, db *sqlx.DB, rdb *redis.Client) {
-	follow := follow.Deps{
+	f := follow.Deps{
 		DB:             db,
 		GetUserSession: rdb.GetJSON,
 	}
 
-	r.Post("/follow", pr.Post(follow.Follow, pr.GetSessionWithDecodeOpts))
+	r.Post("/follow", pr.Post(f.Follow, pr.GetSessionWithDecodeOpts))
 }
 
 func healthCheckHandlers(r *chi.Mux, deps Dependencies) {

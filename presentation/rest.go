@@ -26,6 +26,10 @@ type Opts struct {
 var (
 	DefaultOpts = Opts{}
 
+	GetSessionOnly = Opts{
+		GetSessionCookie: true,
+	}
+
 	GetterSetterSessionOpts = Opts{
 		GetSessionCookie: true,
 		SetSessionCookie: true,
@@ -126,7 +130,7 @@ func Post[inType any, outType b.CommonOutput](handle InputHandler[inType, outTyp
 		out := handle(r.Context(), in, commonInput)
 
 		if opts.SetSessionCookie {
-			setSessionCookie(w, out.CommonRes().SessionID, out.CommonRes().SessionMaxAge)
+			setSessionCookie(w, "sid", out.CommonRes().SessionID, out.CommonRes().SessionMaxAge)
 		}
 
 		if err = response.JSON(w, out.CommonRes().StatusCode, out); err != nil {
@@ -164,7 +168,7 @@ func Delete[outType b.CommonOutput](handle DefaultHandler[outType], opts Opts) h
 		out := handle(r.Context(), commonInput)
 
 		if opts.SetSessionCookie {
-			setSessionCookie(w, out.CommonRes().SessionID, out.CommonRes().SessionMaxAge)
+			setSessionCookie(w, "sid", out.CommonRes().SessionID, out.CommonRes().SessionMaxAge)
 		}
 
 		if err := response.JSON(w, out.CommonRes().StatusCode, &out); err != nil {
